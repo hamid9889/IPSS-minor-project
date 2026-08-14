@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ITPS - Dashboard</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-icon">&#9994;</div>
+                <div>
+                    <div class="logo-text">ITPS</div>
+                    <span class="logo-sub">Scheduling System</span>
+                </div>
+            </div>
+
+            <ul class="sidebar-menu">
+                <li><a href="dashboard.html" class="active"><span class="icon">📊</span> <span>Dashboard</span></a></li>
+                <li><a href="products.html"><span class="icon">📦</span> <span>Products</span></a></li>
+                <li><a href="machines.html"><span class="icon">🏭</span> <span>Machines</span></a></li>
+                <li><a href="orders.html"><span class="icon">📋</span> <span>Orders</span></a></li>
+                <li><a href="schedule.html"><span class="icon">📅</span> <span>Schedule</span></a></li>
+                <li><a href="reports.html"><span class="icon">📈</span> <span>Reports</span></a></li>
+                <li><a href="profile.html"><span class="icon">👤</span> <span>Profile</span></a></li>
+            </ul>
+
+            <div class="sidebar-footer">
+                <a href="index.html" onclick="logout()" class="btn-logout"><span class="icon">🚪</span> <span>Logout</span></a>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Top Header with Hamburger and Admin Profile -->
+            <header class="top-header">
+                <div class="header-left">
+                    <button class="hamburger-btn" onclick="toggleMobileSidebar()">☰</button>
+                    <h1 class="page-title">Dashboard Overview</h1>
+                </div>
+
+                <div class="header-controls">
+                    <button id="themeToggleBtn" onclick="toggleDarkMode()" class="btn-theme-toggle">🌙 Dark Mode</button>
+
+                    <a href="profile.html" class="user-profile" style="text-decoration: none;">
+                        <div class="user-avatar">AU</div>
+                        <div class="user-info">
+                            <div class="user-name">Admin User</div>
+                            <div class="user-role">Production Manager</div>
+                        </div>
+                    </a>
+                </div>
+            </header>
+
+            <!-- Content Wrapper -->
+            <div class="content-wrapper">
+                <!-- Notifications & Alert Banner Area -->
+                <div id="dashboardNotifications" class="notification-area">
+                    <!-- Populated dynamically by script.js -->
+                </div>
+
+                <!-- Summary Stats Cards Grid -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-info">
+                            <h3>Total Products</h3>
+                            <p id="dashTotalProducts">0</p>
+                        </div>
+                        <div class="stat-icon icon-purple">📦</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-info">
+                            <h3>Total Machines</h3>
+                            <p id="dashTotalMachines">0</p>
+                        </div>
+                        <div class="stat-icon icon-cyan">🏭</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-info">
+                            <h3>Total Orders</h3>
+                            <p id="dashTotalOrders">0</p>
+                        </div>
+                        <div class="stat-icon icon-blue">📋</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-info">
+                            <h3>Pending Orders</h3>
+                            <p id="dashPendingOrders">0</p>
+                        </div>
+                        <div class="stat-icon icon-amber">⏳</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-info">
+                            <h3>Completed Orders</h3>
+                            <p id="dashCompletedOrders">0</p>
+                        </div>
+                        <div class="stat-icon icon-green">✅</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-info">
+                            <h3>Delayed Orders</h3>
+                            <p id="dashDelayedOrders">0</p>
+                        </div>
+                        <div class="stat-icon icon-rose">⚠️</div>
+                    </div>
+                </div>
+
+                <!-- Production Progress Indicator -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Production Progress</h2>
+                        <span id="dashProgressVal" style="font-weight: 700; color: var(--primary-color);">0%</span>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div class="progress-track">
+                            <div id="dashProgressBarFill" class="progress-fill" style="width: 0%;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Grid for Machine Utilization & Upcoming Deadlines -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+                    <!-- Machine Utilization Section -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">Machine Utilization</h2>
+                            <a href="machines.html" class="btn btn-secondary btn-sm">Manage</a>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="custom-table">
+                                <thead>
+                                    <tr>
+                                        <th>Machine</th>
+                                        <th>Capacity</th>
+                                        <th>Status</th>
+                                        <th>Utilization</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dashMachineStatusBody">
+                                    <!-- Populated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Upcoming Deadlines Section -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">Upcoming Deadlines</h2>
+                            <a href="orders.html" class="btn btn-secondary btn-sm">All Orders</a>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="custom-table">
+                                <thead>
+                                    <tr>
+                                        <th>Order ID</th>
+                                        <th>Product</th>
+                                        <th>Deadline</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dashUpcomingDeadlinesBody">
+                                    <!-- Populated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Activity Feed -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Recent Activity</h2>
+                    </div>
+                    <div id="dashActivityList" class="activity-list">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/script.js"></script>
+</body>
+</html>

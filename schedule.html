@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ITPS - Production Schedule</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-icon">&#9994;</div>
+                <div>
+                    <div class="logo-text">ITPS</div>
+                    <span class="logo-sub">Scheduling System</span>
+                </div>
+            </div>
+
+            <ul class="sidebar-menu">
+                <li><a href="dashboard.html"><span class="icon">📊</span> <span>Dashboard</span></a></li>
+                <li><a href="products.html"><span class="icon">📦</span> <span>Products</span></a></li>
+                <li><a href="machines.html"><span class="icon">🏭</span> <span>Machines</span></a></li>
+                <li><a href="orders.html"><span class="icon">📋</span> <span>Orders</span></a></li>
+                <li><a href="schedule.html" class="active"><span class="icon">📅</span> <span>Schedule</span></a></li>
+                <li><a href="reports.html"><span class="icon">📈</span> <span>Reports</span></a></li>
+                <li><a href="profile.html"><span class="icon">👤</span> <span>Profile</span></a></li>
+            </ul>
+
+            <div class="sidebar-footer">
+                <a href="index.html" onclick="logout()" class="btn-logout"><span class="icon">🚪</span> <span>Logout</span></a>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Top Header -->
+            <header class="top-header">
+                <div class="header-left">
+                    <button class="hamburger-btn" onclick="toggleMobileSidebar()">☰</button>
+                    <h1 class="page-title">Production Scheduling</h1>
+                </div>
+
+                <div class="header-controls">
+                    <button id="themeToggleBtn" onclick="toggleDarkMode()" class="btn-theme-toggle">🌙 Dark Mode</button>
+                    <a href="profile.html" class="user-profile" style="text-decoration: none;">
+                        <div class="user-avatar">AU</div>
+                        <div class="user-info">
+                            <div class="user-name">Admin User</div>
+                            <div class="user-role">Production Manager</div>
+                        </div>
+                    </a>
+                </div>
+            </header>
+
+            <!-- Content Wrapper -->
+            <div class="content-wrapper">
+                <!-- Action Card with Loading Experience -->
+                <div class="card">
+                    <div class="card-header" style="border-bottom: none; margin-bottom: 0; padding-bottom: 0;">
+                        <div>
+                            <h2 class="card-title">Automated Production Scheduling</h2>
+                            <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">
+                                Priority order: High &rarr; Medium &rarr; Low. Earlier deadline orders get assigned first to available machines.
+                            </p>
+                        </div>
+                        <button id="generateScheduleBtn" class="btn btn-success" style="padding: 12px 24px; font-size: 15px;">⚡ Generate Best Schedule</button>
+                    </div>
+
+                    <!-- Step-by-Step Loading Status -->
+                    <div id="scheduleLoadingStatus" style="display: none; margin-top: 15px; font-weight: 600; font-size: 14px; color: var(--primary-color);"></div>
+                </div>
+
+                <!-- Gantt-Style Timeline Chart Card -->
+                <div class="gantt-container">
+                    <h2 class="card-title" style="margin-bottom: 15px;">Visual Schedule Gantt Timeline</h2>
+                    
+                    <div class="gantt-header">
+                        <div>Machine</div>
+                        <div>09:00 AM</div>
+                        <div>10:00 AM</div>
+                        <div>11:00 AM</div>
+                        <div>12:00 PM</div>
+                        <div>01:00 PM</div>
+                        <div>02:00 PM</div>
+                    </div>
+
+                    <div id="ganttTimelineBody">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+
+                <!-- Schedule Table Card -->
+                <div class="card" style="margin-top: 25px;">
+                    <div class="card-header">
+                        <h2 class="card-title">Generated Production Schedule Details</h2>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="custom-table">
+                            <thead>
+                                <tr>
+                                    <th>Machine</th>
+                                    <th>Order</th>
+                                    <th>Product</th>
+                                    <th>Start Time</th>
+                                    <th>End Time</th>
+                                    <th>Priority</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="scheduleTableBody">
+                                <!-- Populated dynamically by script.js -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/script.js"></script>
+</body>
+</html>

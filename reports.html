@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ITPS - Production Reports</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-icon">&#9994;</div>
+                <div>
+                    <div class="logo-text">ITPS</div>
+                    <span class="logo-sub">Scheduling System</span>
+                </div>
+            </div>
+
+            <ul class="sidebar-menu">
+                <li><a href="dashboard.html"><span class="icon">📊</span> <span>Dashboard</span></a></li>
+                <li><a href="products.html"><span class="icon">📦</span> <span>Products</span></a></li>
+                <li><a href="machines.html"><span class="icon">🏭</span> <span>Machines</span></a></li>
+                <li><a href="orders.html"><span class="icon">📋</span> <span>Orders</span></a></li>
+                <li><a href="schedule.html"><span class="icon">📅</span> <span>Schedule</span></a></li>
+                <li><a href="reports.html" class="active"><span class="icon">📈</span> <span>Reports</span></a></li>
+                <li><a href="profile.html"><span class="icon">👤</span> <span>Profile</span></a></li>
+            </ul>
+
+            <div class="sidebar-footer">
+                <a href="index.html" onclick="logout()" class="btn-logout"><span class="icon">🚪</span> <span>Logout</span></a>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Top Header -->
+            <header class="top-header">
+                <div class="header-left">
+                    <button class="hamburger-btn" onclick="toggleMobileSidebar()">☰</button>
+                    <h1 class="page-title">Production Reports</h1>
+                </div>
+
+                <div class="header-controls">
+                    <button id="themeToggleBtn" onclick="toggleDarkMode()" class="btn-theme-toggle">🌙 Dark Mode</button>
+                    <a href="profile.html" class="user-profile" style="text-decoration: none;">
+                        <div class="user-avatar">AU</div>
+                        <div class="user-info">
+                            <div class="user-name">Admin User</div>
+                            <div class="user-role">Production Manager</div>
+                        </div>
+                    </a>
+                </div>
+            </header>
+
+            <!-- Content Wrapper -->
+            <div class="content-wrapper">
+                <!-- Summary Metrics Cards Grid -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-info">
+                            <h3>Total Orders</h3>
+                            <p id="rptTotalOrders">0</p>
+                        </div>
+                        <div class="stat-icon icon-blue">📋</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-info">
+                            <h3>Completed Orders</h3>
+                            <p id="rptCompletedOrders">0</p>
+                        </div>
+                        <div class="stat-icon icon-green">✅</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-info">
+                            <h3>Pending Orders</h3>
+                            <p id="rptPendingOrders">0</p>
+                        </div>
+                        <div class="stat-icon icon-amber">⏳</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-info">
+                            <h3>Delayed Orders</h3>
+                            <p id="rptDelayedOrders">0</p>
+                        </div>
+                        <div class="stat-icon icon-rose">⚠️</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-info">
+                            <h3>Total Machines</h3>
+                            <p id="rptTotalMachines">0</p>
+                        </div>
+                        <div class="stat-icon icon-purple">🏭</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-info">
+                            <h3>Available Machines</h3>
+                            <p id="rptAvailableMachines">0</p>
+                        </div>
+                        <div class="stat-icon icon-cyan">⚡</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-info">
+                            <h3>Machine Utilization</h3>
+                            <p id="rptMachineUtilization">0%</p>
+                        </div>
+                        <div class="stat-icon icon-rose">📊</div>
+                    </div>
+                </div>
+
+                <!-- Visual Representations Grid -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+                    <!-- Order Status Visual Representation (CSS Bars) -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">Order Status Distribution</h2>
+                        </div>
+
+                        <div style="display: flex; flex-direction: column; gap: 15px;">
+                            <div>
+                                <div class="progress-label">
+                                    <span>Completed Orders</span>
+                                    <span id="barCompletedTxt">0%</span>
+                                </div>
+                                <div class="progress-track">
+                                    <div id="barCompleted" class="progress-fill" style="width: 0%; background-color: #16a34a;"></div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <div class="progress-label">
+                                    <span>Pending Orders</span>
+                                    <span id="barPendingTxt">0%</span>
+                                </div>
+                                <div class="progress-track">
+                                    <div id="barPending" class="progress-fill" style="width: 0%; background-color: #d97706;"></div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <div class="progress-label">
+                                    <span>Delayed Orders</span>
+                                    <span id="barDelayedTxt">0%</span>
+                                </div>
+                                <div class="progress-track">
+                                    <div id="barDelayed" class="progress-fill" style="width: 0%; background-color: #dc2626;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Machine Usage Breakdown -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">Machine Usage Breakdown</h2>
+                        </div>
+
+                        <div id="rptMachineUsageBars">
+                            <!-- Populated dynamically by script.js -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Performance Table -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Production Summary</h2>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="custom-table">
+                            <thead>
+                                <tr>
+                                    <th>Performance Indicator</th>
+                                    <th>Value</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>Order Completion Rate</strong></td>
+                                    <td id="completionRateVal">0%</td>
+                                    <td><span class="badge badge-success">Good</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Machine Operational Efficiency</strong></td>
+                                    <td>88%</td>
+                                    <td><span class="badge badge-success">Optimal</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Average Scheduling Delay</strong></td>
+                                    <td>0.5 Days</td>
+                                    <td><span class="badge badge-info">Normal</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/script.js"></script>
+</body>
+</html>

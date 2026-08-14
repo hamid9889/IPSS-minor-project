@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ITPS - Admin Profile</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-icon">&#9994;</div>
+                <div>
+                    <div class="logo-text">ITPS</div>
+                    <span class="logo-sub">Scheduling System</span>
+                </div>
+            </div>
+
+            <ul class="sidebar-menu">
+                <li><a href="dashboard.html"><span class="icon">📊</span> <span>Dashboard</span></a></li>
+                <li><a href="products.html"><span class="icon">📦</span> <span>Products</span></a></li>
+                <li><a href="machines.html"><span class="icon">🏭</span> <span>Machines</span></a></li>
+                <li><a href="orders.html"><span class="icon">📋</span> <span>Orders</span></a></li>
+                <li><a href="schedule.html"><span class="icon">📅</span> <span>Schedule</span></a></li>
+                <li><a href="reports.html"><span class="icon">📈</span> <span>Reports</span></a></li>
+                <li><a href="profile.html" class="active"><span class="icon">👤</span> <span>Profile</span></a></li>
+            </ul>
+
+            <div class="sidebar-footer">
+                <a href="index.html" onclick="logout()" class="btn-logout"><span class="icon">🚪</span> <span>Logout</span></a>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Top Header -->
+            <header class="top-header">
+                <div class="header-left">
+                    <button class="hamburger-btn" onclick="toggleMobileSidebar()">☰</button>
+                    <h1 class="page-title">User Profile</h1>
+                </div>
+
+                <div class="header-controls">
+                    <button id="themeToggleBtn" onclick="toggleDarkMode()" class="btn-theme-toggle">🌙 Dark Mode</button>
+                    <div class="user-profile">
+                        <div class="user-avatar" id="headerUserAvatar">AU</div>
+                        <div class="user-info">
+                            <div class="user-name" id="headerUserName">Admin User</div>
+                            <div class="user-role">Production Manager</div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Content Wrapper -->
+            <div class="content-wrapper">
+                <!-- Profile Header Banner Card -->
+                <div class="card" style="background: linear-gradient(135deg, #bf9d85 0%, #1e293b 100%); color: #ffffff; padding: 30px;">
+                    <div style="display: flex; align-items: center; gap: 24px; flex-wrap: wrap;">
+                        <div style="width: 80px; height: 80px; background-color: #2563eb; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: bold; border: 3px solid #ffffff;" id="profileAvatarLarge">
+                            AU
+                        </div>
+                        <div>
+                            <h2 style="font-size: 26px; font-weight: 700; margin-bottom: 4px; color: #ffffff;" id="profileHeaderFullName">Admin User</h2>
+                            <p style="font-size: 14px; opacity: 0.9; margin-bottom: 8px;">
+                                @<span id="profileHeaderUsername">admin</span> &bull; <span id="profileHeaderRole">Production Manager</span>
+                            </p>
+                            <span class="badge badge-success" style="font-size: 12px; padding: 4px 12px;">Active Account</span>
+                        </div>
+                        <div style="margin-left: auto;">
+                            <button onclick="toggleEditProfileForm()" class="btn btn-primary" style="background-color: #2563eb; color: #ffffff;">✏️ Edit Profile</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Info Banner Alert -->
+                <div id="profileAlertMsg" class="alert-box alert-success" style="display: none; margin-bottom: 20px;"></div>
+
+                <!-- Edit Profile Form (Collapsible / Toggleable) -->
+                <div id="editProfileCard" class="card" style="display: none;">
+                    <div class="card-header">
+                        <h2 class="card-title">Edit Profile Information</h2>
+                    </div>
+
+                    <form id="editProfileForm">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="editFullName">Full Name</label>
+                                <input type="text" id="editFullName" class="form-control" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="editEmail">Email Address</label>
+                                <input type="email" id="editEmail" class="form-control" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="editPhone">Phone Number</label>
+                                <input type="text" id="editPhone" class="form-control" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="editDob">Date of Birth</label>
+                                <input type="date" id="editDob" class="form-control" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="editGender">Gender</label>
+                                <select id="editGender" class="form-control" required>
+                                    <option value="Male">Male</option>
+                                    <option value="Female">Female</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="editAddress">Address</label>
+                                <input type="text" id="editAddress" class="form-control" required>
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 15px;">
+                            <button type="submit" class="btn btn-success">Save Changes</button>
+                            <button type="button" onclick="toggleEditProfileForm()" class="btn btn-secondary">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Grid for Personal, Professional & Account Info -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+                    <!-- Personal Information Card -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">👤 Personal Information</h2>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 14px; font-size: 14px;">
+                            <div>
+                                <span style="color: var(--text-muted); font-size: 12px; text-transform: uppercase; font-weight: 600; display: block;">Full Name</span>
+                                <strong id="infoFullName">Admin User</strong>
+                            </div>
+                            <div>
+                                <span style="color: var(--text-muted); font-size: 12px; text-transform: uppercase; font-weight: 600; display: block;">Username</span>
+                                <strong id="infoUsername">admin</strong>
+                            </div>
+                            <div>
+                                <span style="color: var(--text-muted); font-size: 12px; text-transform: uppercase; font-weight: 600; display: block;">Email</span>
+                                <strong id="infoEmail">admin@itps.com</strong>
+                            </div>
+                            <div>
+                                <span style="color: var(--text-muted); font-size: 12px; text-transform: uppercase; font-weight: 600; display: block;">Phone Number</span>
+                                <strong id="infoPhone">+1 (555) 234-5678</strong>
+                            </div>
+                            <div>
+                                <span style="color: var(--text-muted); font-size: 12px; text-transform: uppercase; font-weight: 600; display: block;">Date of Birth</span>
+                                <strong id="infoDob">1990-05-15</strong>
+                            </div>
+                            <div>
+                                <span style="color: var(--text-muted); font-size: 12px; text-transform: uppercase; font-weight: 600; display: block;">Gender</span>
+                                <strong id="infoGender">Male</strong>
+                            </div>
+                            <div>
+                                <span style="color: var(--text-muted); font-size: 12px; text-transform: uppercase; font-weight: 600; display: block;">Address</span>
+                                <strong id="infoAddress">123 Industrial Parkway, Suite 400</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Professional Information Card -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">⚙️ Professional Information</h2>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 14px; font-size: 14px;">
+                            <div>
+                                <span style="color: var(--text-muted); font-size: 12px; text-transform: uppercase; font-weight: 600; display: block;">Employee ID</span>
+                                <strong>ITPS-001</strong>
+                            </div>
+                            <div>
+                                <span style="color: var(--text-muted); font-size: 12px; text-transform: uppercase; font-weight: 600; display: block;">Department</span>
+                                <strong>Production & Planning</strong>
+                            </div>
+                            <div>
+                                <span style="color: var(--text-muted); font-size: 12px; text-transform: uppercase; font-weight: 600; display: block;">Designation</span>
+                                <strong>Production Manager</strong>
+                            </div>
+                            <div>
+                                <span style="color: var(--text-muted); font-size: 12px; text-transform: uppercase; font-weight: 600; display: block;">Joining Date</span>
+                                <strong>2022-01-10</strong>
+                            </div>
+                            <div>
+                                <span style="color: var(--text-muted); font-size: 12px; text-transform: uppercase; font-weight: 600; display: block;">Work Location</span>
+                                <strong>Facility #1, Sector B</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Account Information Card -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">🔐 Account Information</h2>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 14px; font-size: 14px;">
+                            <div>
+                                <span style="color: var(--text-muted); font-size: 12px; text-transform: uppercase; font-weight: 600; display: block;">Account Status</span>
+                                <span class="badge badge-success">Active</span>
+                            </div>
+                            <div>
+                                <span style="color: var(--text-muted); font-size: 12px; text-transform: uppercase; font-weight: 600; display: block;">Account Created</span>
+                                <strong>2022-01-10</strong>
+                            </div>
+                            <div>
+                                <span style="color: var(--text-muted); font-size: 12px; text-transform: uppercase; font-weight: 600; display: block;">Last Login</span>
+                                <strong>Today (Active Session)</strong>
+                            </div>
+                            <div>
+                                <span style="color: var(--text-muted); font-size: 12px; text-transform: uppercase; font-weight: 600; display: block;">Account Type</span>
+                                <span class="badge badge-info">Administrator</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Change Password Section Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">🔑 Change Password</h2>
+                    </div>
+
+                    <form id="changePasswordForm">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="currentPassword">Current Password</label>
+                                <input type="password" id="currentPassword" class="form-control" placeholder="••••••••" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="newPassword">New Password</label>
+                                <input type="password" id="newPassword" class="form-control" placeholder="••••••••" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="confirmNewPassword">Confirm New Password</label>
+                                <input type="password" id="confirmNewPassword" class="form-control" placeholder="••••••••" required>
+                            </div>
+
+                            <div>
+                                <button type="submit" class="btn btn-primary">Change Password</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/script.js"></script>
+</body>
+</html>

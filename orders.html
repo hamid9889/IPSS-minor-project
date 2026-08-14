@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ITPS - Production Orders</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-icon">&#9994;</div>
+                <div>
+                    <div class="logo-text">ITPS</div>
+                    <span class="logo-sub">Scheduling System</span>
+                </div>
+            </div>
+
+            <ul class="sidebar-menu">
+                <li><a href="dashboard.html"><span class="icon">📊</span> <span>Dashboard</span></a></li>
+                <li><a href="products.html"><span class="icon">📦</span> <span>Products</span></a></li>
+                <li><a href="machines.html"><span class="icon">🏭</span> <span>Machines</span></a></li>
+                <li><a href="orders.html" class="active"><span class="icon">📋</span> <span>Orders</span></a></li>
+                <li><a href="schedule.html"><span class="icon">📅</span> <span>Schedule</span></a></li>
+                <li><a href="reports.html"><span class="icon">📈</span> <span>Reports</span></a></li>
+                <li><a href="profile.html"><span class="icon">👤</span> <span>Profile</span></a></li>
+            </ul>
+
+            <div class="sidebar-footer">
+                <a href="index.html" onclick="logout()" class="btn-logout"><span class="icon">🚪</span> <span>Logout</span></a>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Top Header -->
+            <header class="top-header">
+                <div class="header-left">
+                    <button class="hamburger-btn" onclick="toggleMobileSidebar()">☰</button>
+                    <h1 class="page-title">Manage Orders</h1>
+                </div>
+
+                <div class="header-controls">
+                    <button id="themeToggleBtn" onclick="toggleDarkMode()" class="btn-theme-toggle">🌙 Dark Mode</button>
+                    <a href="profile.html" class="user-profile" style="text-decoration: none;">
+                        <div class="user-avatar">AU</div>
+                        <div class="user-info">
+                            <div class="user-name">Admin User</div>
+                            <div class="user-role">Production Manager</div>
+                        </div>
+                    </a>
+                </div>
+            </header>
+
+            <!-- Content Wrapper -->
+            <div class="content-wrapper">
+                <!-- Search & Filters Control Bar -->
+                <div class="filter-bar">
+                    <div class="search-box">
+                        <span class="search-icon">🔍</span>
+                        <input type="text" id="orderSearchInput" placeholder="Search Orders...">
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="orderPriorityFilter">Priority:</label>
+                        <select id="orderPriorityFilter" class="form-control" style="width: auto; padding: 6px 12px;">
+                            <option value="All">All Priorities</option>
+                            <option value="High">High</option>
+                            <option value="Medium">Medium</option>
+                            <option value="Low">Low</option>
+                        </select>
+
+                        <label for="orderStatusFilter" style="margin-left: 10px;">Status:</label>
+                        <select id="orderStatusFilter" class="form-control" style="width: auto; padding: 6px 12px;">
+                            <option value="All">All Statuses</option>
+                            <option value="Pending">Pending</option>
+                            <option value="Completed">Completed</option>
+                            <option value="Delayed">Delayed</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Add / Edit Order Form Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title" id="orderFormTitle">Create New Order</h2>
+                    </div>
+
+                    <form id="orderForm">
+                        <input type="hidden" id="orderEditId">
+
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="orderProductSelect">Product</label>
+                                <select id="orderProductSelect" class="form-control" required>
+                                    <option value="">-- Select Product --</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="orderQuantity">Quantity</label>
+                                <input type="number" id="orderQuantity" class="form-control" placeholder="e.g. 50" min="1" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="orderPriority">Priority</label>
+                                <select id="orderPriority" class="form-control" required>
+                                    <option value="High">High</option>
+                                    <option value="Medium" selected>Medium</option>
+                                    <option value="Low">Low</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="orderDeadline">Deadline</label>
+                                <input type="date" id="orderDeadline" class="form-control" required>
+                            </div>
+
+                            <div>
+                                <button type="submit" id="orderFormBtn" class="btn btn-primary">Add Order</button>
+                                <button type="button" id="cancelOrderEditBtn" class="btn btn-secondary" style="display: none; margin-left: 5px;">Cancel</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Orders Table Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">All Production Orders</h2>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="custom-table">
+                            <thead>
+                                <tr>
+                                    <th>Order ID</th>
+                                    <th>Product</th>
+                                    <th>Quantity</th>
+                                    <th>Priority</th>
+                                    <th>Deadline</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ordersTableBody">
+                                <!-- Populated dynamically by script.js -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/script.js"></script>
+</body>
+</html>

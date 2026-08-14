@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ITPS - Products Management</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-icon">&#9994;</div>
+                <div>
+                    <div class="logo-text">ITPS</div>
+                    <span class="logo-sub">Scheduling System</span>
+                </div>
+            </div>
+
+            <ul class="sidebar-menu">
+                <li><a href="dashboard.html"><span class="icon">📊</span> <span>Dashboard</span></a></li>
+                <li><a href="products.html" class="active"><span class="icon">📦</span> <span>Products</span></a></li>
+                <li><a href="machines.html"><span class="icon">🏭</span> <span>Machines</span></a></li>
+                <li><a href="orders.html"><span class="icon">📋</span> <span>Orders</span></a></li>
+                <li><a href="schedule.html"><span class="icon">📅</span> <span>Schedule</span></a></li>
+                <li><a href="reports.html"><span class="icon">📈</span> <span>Reports</span></a></li>
+                <li><a href="profile.html"><span class="icon">👤</span> <span>Profile</span></a></li>
+            </ul>
+
+            <div class="sidebar-footer">
+                <a href="index.html" onclick="logout()" class="btn-logout"><span class="icon">🚪</span> <span>Logout</span></a>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Top Header -->
+            <header class="top-header">
+                <div class="header-left">
+                    <button class="hamburger-btn" onclick="toggleMobileSidebar()">☰</button>
+                    <h1 class="page-title">Manage Products</h1>
+                </div>
+
+                <div class="header-controls">
+                    <button id="themeToggleBtn" onclick="toggleDarkMode()" class="btn-theme-toggle">🌙 Dark Mode</button>
+                    <a href="profile.html" class="user-profile" style="text-decoration: none;">
+                        <div class="user-avatar">AU</div>
+                        <div class="user-info">
+                            <div class="user-name">Admin User</div>
+                            <div class="user-role">Production Manager</div>
+                        </div>
+                    </a>
+                </div>
+            </header>
+
+            <!-- Content Wrapper -->
+            <div class="content-wrapper">
+                <!-- Search Control Bar -->
+                <div class="filter-bar">
+                    <div class="search-box">
+                        <span class="search-icon">🔍</span>
+                        <input type="text" id="productSearchInput" placeholder="Search Products...">
+                    </div>
+                </div>
+
+                <!-- Add / Edit Product Form Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title" id="productFormTitle">Add New Product</h2>
+                    </div>
+
+                    <form id="productForm">
+                        <input type="hidden" id="productId">
+
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="productName">Product Name</label>
+                                <input type="text" id="productName" class="form-control" placeholder="e.g. Laptop Assembly" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="productQuantity">Quantity</label>
+                                <input type="number" id="productQuantity" class="form-control" placeholder="e.g. 100" min="1" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="processingTime">Processing Time (hrs/unit)</label>
+                                <input type="number" step="0.1" id="processingTime" class="form-control" placeholder="e.g. 1.5" min="0.1" required>
+                            </div>
+
+                            <div>
+                                <button type="submit" id="formSubmitBtn" class="btn btn-primary">Add Product</button>
+                                <button type="button" id="cancelProductEditBtn" class="btn btn-secondary" style="display: none; margin-left: 5px;">Cancel</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Products Table Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Product List</h2>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="custom-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Product</th>
+                                    <th>Quantity</th>
+                                    <th>Processing Time</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="productsTableBody">
+                                <!-- Populated dynamically by script.js -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/script.js"></script>
+</body>
+</html>

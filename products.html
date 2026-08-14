@@ -57,18 +57,50 @@
 
             <!-- Content Wrapper -->
             <div class="content-wrapper">
+                <!-- Product Analytics KPI Cards -->
+                <div class="stats-grid" style="margin-bottom: 20px;">
+                    <div class="stat-card">
+                        <div class="stat-icon icon-blue">📦</div>
+                        <div>
+                            <div class="stat-title">Total Master Products</div>
+                            <div class="stat-value" id="prdTotalCount">0</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon icon-amber">⏱️</div>
+                        <div>
+                            <div class="stat-title">Avg. Processing Time</div>
+                            <div class="stat-value" id="prdAvgProcTime">0.0 hrs</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon icon-green">📋</div>
+                        <div>
+                            <div class="stat-title">Active Orders Linked</div>
+                            <div class="stat-value" id="prdTotalOrdersLinked">0</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon icon-purple">🔢</div>
+                        <div>
+                            <div class="stat-title">Total Production Volume</div>
+                            <div class="stat-value" id="prdTotalVolume">0 units</div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Search Control Bar -->
                 <div class="filter-bar">
                     <div class="search-box">
                         <span class="search-icon">🔍</span>
-                        <input type="text" id="productSearchInput" placeholder="Search Products...">
+                        <input type="text" id="productSearchInput" placeholder="Search Master Products by name or category...">
                     </div>
                 </div>
 
-                <!-- Add / Edit Product Form Card -->
+                <!-- Add / Edit Product Master Form Card -->
                 <div class="card">
                     <div class="card-header">
-                        <h2 class="card-title" id="productFormTitle">Add New Product</h2>
+                        <h2 class="card-title" id="productFormTitle">Add New Product Master</h2>
                     </div>
 
                     <form id="productForm">
@@ -81,18 +113,35 @@
                             </div>
 
                             <div class="form-group">
-                                <label for="productQuantity">Quantity</label>
-                                <input type="number" id="productQuantity" class="form-control" placeholder="e.g. 100" min="1" required>
+                                <label for="productCategory">Category</label>
+                                <select id="productCategory" class="form-control" required>
+                                    <option value="Electronics">Electronics</option>
+                                    <option value="Peripherals">Peripherals</option>
+                                    <option value="Mechanical">Mechanical</option>
+                                    <option value="Control Units">Control Units</option>
+                                    <option value="General Assembly">General Assembly</option>
+                                </select>
                             </div>
 
                             <div class="form-group">
-                                <label for="processingTime">Processing Time (hrs/unit)</label>
-                                <input type="number" step="0.1" id="processingTime" class="form-control" placeholder="e.g. 1.5" min="0.1" required>
+                                <label for="processingTime">Processing Time per Unit (Hours)</label>
+                                <input type="number" step="0.01" id="processingTime" class="form-control" placeholder="e.g. 1.5" min="0.01" required>
                             </div>
 
-                            <div>
-                                <button type="submit" id="formSubmitBtn" class="btn btn-primary">Add Product</button>
-                                <button type="button" id="cancelProductEditBtn" class="btn btn-secondary" style="display: none; margin-left: 5px;">Cancel</button>
+                            <div class="form-group">
+                                <label for="assignedMachineSelect">Preferred Machine Line</label>
+                                <select id="assignedMachineSelect" class="form-control">
+                                    <option value="All Machines">All Machines (Flexible)</option>
+                                    <option value="M-01">M-01</option>
+                                    <option value="M-02">M-02</option>
+                                    <option value="M-03">M-03</option>
+                                    <option value="M-04">M-04</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group" style="display: flex; align-items: flex-end; gap: 10px;">
+                                <button type="submit" id="formSubmitBtn" class="btn btn-primary" style="flex: 1; height: 42px;">Save Product Master</button>
+                                <button type="button" id="cancelProductEditBtn" class="btn btn-secondary" style="display: none; height: 42px;">Cancel</button>
                             </div>
                         </div>
                     </form>
@@ -101,17 +150,20 @@
                 <!-- Products Table Card -->
                 <div class="card">
                     <div class="card-header">
-                        <h2 class="card-title">Product List</h2>
+                        <h2 class="card-title">Product Master Catalog & Analysis</h2>
                     </div>
 
                     <div class="table-responsive">
                         <table class="custom-table">
                             <thead>
                                 <tr>
-                                    <th>ID</th>
-                                    <th>Product</th>
-                                    <th>Quantity</th>
-                                    <th>Processing Time</th>
+                                    <th>#</th>
+                                    <th>Product Name</th>
+                                    <th>Category</th>
+                                    <th>Unit Processing Time</th>
+                                    <th>Preferred Line</th>
+                                    <th>Linked Active Orders</th>
+                                    <th>Total Production Volume</th>
                                     <th>Action</th>
                                 </tr>
                             </thead>

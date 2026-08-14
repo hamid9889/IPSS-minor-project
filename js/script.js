@@ -49,10 +49,10 @@ function toggleMobileSidebar() {
 function initDefaultData() {
     if (!localStorage.getItem('itps_products')) {
         const defaultProducts = [
-            { id: 1, productName: 'Laptop Assembly', quantity: 100, processingTime: 2 },
-            { id: 2, productName: 'Mouse Housing', quantity: 250, processingTime: 1.5 },
-            { id: 3, productName: 'Motor Shaft', quantity: 150, processingTime: 3 },
-            { id: 4, productName: 'Control Panel Unit', quantity: 80, processingTime: 4 }
+            { id: 1, productName: 'Laptop Assembly', category: 'Electronics', processingTime: 2.0, preferredLine: 'M-01' },
+            { id: 2, productName: 'Mouse Housing', category: 'Peripherals', processingTime: 1.5, preferredLine: 'M-02' },
+            { id: 3, productName: 'Motor Shaft', category: 'Mechanical', processingTime: 3.0, preferredLine: 'M-03' },
+            { id: 4, productName: 'Control Panel Unit', category: 'Control Units', processingTime: 4.0, preferredLine: 'M-04' }
         ];
         saveData('itps_products', defaultProducts);
     }
@@ -482,27 +482,64 @@ function updateDashboard() {
 // --- PRODUCTS PAGE ---
 function renderProductsTable(filterText = '') {
     let products = getData('itps_products');
+    const orders = getData('itps_orders');
     const tableBody = document.getElementById('productsTableBody');
     if (!tableBody) return;
 
+    // Filter products
+    let filteredProducts = products;
     if (filterText) {
-        products = products.filter(p => p.productName.toLowerCase().includes(filterText.toLowerCase()));
+        filteredProducts = products.filter(p => 
+            p.productName.toLowerCase().includes(filterText.toLowerCase()) || 
+            (p.category && p.category.toLowerCase().includes(filterText.toLowerCase()))
+        );
     }
+
+    // Compute Product Analytics
+    const totalCount = products.length;
+    let sumProcTime = 0;
+    let totalLinkedOrdersCount = 0;
+    let totalScheduledUnitsVolume = 0;
+
+    products.forEach(p => {
+        sumProcTime += parseFloat(p.processingTime) || 0;
+        const matchingOrders = orders.filter(o => o.productName === p.productName);
+        totalLinkedOrdersCount += matchingOrders.length;
+        matchingOrders.forEach(o => {
+            totalScheduledUnitsVolume += parseInt(o.quantity) || 0;
+        });
+    });
+
+    const avgProcTime = totalCount > 0 ? (sumProcTime / totalCount).toFixed(1) : '0.0';
+
+    // Update KPI Cards
+    if (document.getElementById('prdTotalCount')) document.getElementById('prdTotalCount').textContent = totalCount;
+    if (document.getElementById('prdAvgProcTime')) document.getElementById('prdAvgProcTime').textContent = avgProcTime + ' hrs';
+    if (document.getElementById('prdTotalOrdersLinked')) document.getElementById('prdTotalOrdersLinked').textContent = totalLinkedOrdersCount;
+    if (document.getElementById('prdTotalVolume')) document.getElementById('prdTotalVolume').textContent = totalScheduledUnitsVolume + ' units';
 
     tableBody.innerHTML = '';
 
-    if (products.length === 0) {
-        tableBody.innerHTML = `<tr><td colspan="5" class="empty-placeholder">No products found.</td></tr>`;
+    if (filteredProducts.length === 0) {
+        tableBody.innerHTML = `<tr><td colspan="8" class="empty-placeholder">No master products found.</td></tr>`;
         return;
     }
 
-    products.forEach((product, index) => {
+    filteredProducts.forEach((product, index) => {
+        const matchingOrders = orders.filter(o => o.productName === product.productName);
+        const linkedOrdersCount = matchingOrders.length;
+        let productVolume = 0;
+        matchingOrders.forEach(o => { productVolume += parseInt(o.quantity) || 0; });
+
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>#${index + 1}</td>
             <td><strong>${product.productName}</strong></td>
-            <td>${product.quantity} units</td>
+            <td><span class="badge badge-info">${product.category || 'General'}</span></td>
             <td>${product.processingTime} hrs/unit</td>
+            <td><span class="badge badge-warning">🏭 ${product.preferredLine || 'All Machines'}</span></td>
+            <td><strong>${linkedOrdersCount}</strong> active order(s)</td>
+            <td><strong>${productVolume}</strong> units scheduled</td>
             <td class="action-buttons">
                 <button class="btn btn-secondary btn-sm" onclick="editProduct(${product.id})">Edit</button>
                 <button class="btn btn-danger btn-sm" onclick="deleteProduct(${product.id})">Delete</button>
@@ -531,24 +568,30 @@ function setupProductForm() {
 
         const productId = document.getElementById('productId').value;
         const productName = document.getElementById('productName').value.trim();
-        const quantity = parseInt(document.getElementById('productQuantity').value);
+        const category = document.getElementById('productCategory').value;
         const processingTime = parseFloat(document.getElementById('processingTime').value);
+        const preferredLine = document.getElementById('assignedMachineSelect') ? document.getElementById('assignedMachineSelect').value : 'All Machines';
 
         if (!productName) { alert('Please enter a product name.'); return; }
-        if (isNaN(quantity) || quantity <= 0) { alert('Please enter a valid quantity greater than 0.'); return; }
         if (isNaN(processingTime) || processingTime <= 0) { alert('Please enter a valid processing time greater than 0.'); return; }
 
         let products = getData('itps_products');
 
         if (productId) {
-            products = products.map(p => p.id == productId ? { id: parseInt(productId), productName, quantity, processingTime } : p);
-            addRecentActivity(`Updated product "${productName}"`, 'info');
-            alert('Product updated successfully!');
+            products = products.map(p => p.id == productId ? { id: parseInt(productId), productName, category, processingTime, preferredLine } : p);
+            addRecentActivity(`Updated Product Master "${productName}"`, 'info');
+            alert('Product master updated successfully!');
         } else {
-            const newProduct = { id: Date.now(), productName: productName, quantity: quantity, processingTime: processingTime };
+            const newProduct = { 
+                id: Date.now(), 
+                productName: productName, 
+                category: category, 
+                processingTime: processingTime, 
+                preferredLine: preferredLine 
+            };
             products.push(newProduct);
-            addRecentActivity(`Added product "${productName}"`, 'success');
-            alert('Product added successfully!');
+            addRecentActivity(`Created Product Master "${productName}"`, 'success');
+            alert('Product master added successfully!');
         }
 
         saveData('itps_products', products);
@@ -565,22 +608,23 @@ function editProduct(id) {
     if (product) {
         document.getElementById('productId').value = product.id;
         document.getElementById('productName').value = product.productName;
-        document.getElementById('productQuantity').value = product.quantity;
+        if (document.getElementById('productCategory')) document.getElementById('productCategory').value = product.category || 'General Assembly';
         document.getElementById('processingTime').value = product.processingTime;
+        if (document.getElementById('assignedMachineSelect')) document.getElementById('assignedMachineSelect').value = product.preferredLine || 'All Machines';
 
-        document.getElementById('formSubmitBtn').textContent = 'Update Product';
-        if (document.getElementById('productFormTitle')) document.getElementById('productFormTitle').textContent = 'Edit Product';
+        document.getElementById('formSubmitBtn').textContent = 'Update Product Master';
+        if (document.getElementById('productFormTitle')) document.getElementById('productFormTitle').textContent = 'Edit Product Master';
         if (document.getElementById('cancelProductEditBtn')) document.getElementById('cancelProductEditBtn').style.display = 'inline-block';
     }
 }
 
 function deleteProduct(id) {
-    if (confirm('Are you sure you want to delete this product?')) {
+    if (confirm('Are you sure you want to delete this master product?')) {
         let products = getData('itps_products');
         const prodObj = products.find(p => p.id == id);
         products = products.filter(p => p.id != id);
         saveData('itps_products', products);
-        if (prodObj) addRecentActivity(`Deleted product "${prodObj.productName}"`, 'danger');
+        if (prodObj) addRecentActivity(`Deleted Product Master "${prodObj.productName}"`, 'danger');
         renderProductsTable();
     }
 }
@@ -589,8 +633,8 @@ function resetProductForm() {
     const form = document.getElementById('productForm');
     if (form) form.reset();
     document.getElementById('productId').value = '';
-    document.getElementById('formSubmitBtn').textContent = 'Add Product';
-    if (document.getElementById('productFormTitle')) document.getElementById('productFormTitle').textContent = 'Add New Product';
+    document.getElementById('formSubmitBtn').textContent = 'Save Product Master';
+    if (document.getElementById('productFormTitle')) document.getElementById('productFormTitle').textContent = 'Add New Product Master';
     if (document.getElementById('cancelProductEditBtn')) document.getElementById('cancelProductEditBtn').style.display = 'none';
 }
 

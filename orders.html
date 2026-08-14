@@ -83,109 +83,95 @@
                     </div>
                 </div>
 
-                <!-- Dual Order Entry & Pre-Scheduling Card -->
+                <!-- Compact Order Entry & File Upload Card -->
                 <div class="card">
-                    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
-                        <h2 class="card-title" id="orderFormTitle">Dual Order Entry & Pre-Scheduling</h2>
-                        <span class="badge badge-info">Live Availability Engine</span>
-                    </div>
-
-                    <!-- Tab Headers -->
-                    <div class="tab-container">
-                        <button class="tab-btn active" id="tabBtnManual" onclick="switchOrderTab('manual')">
-                            📝 Manual Order Entry
-                        </button>
-                        <button class="tab-btn" id="tabBtnBulk" onclick="switchOrderTab('bulk')">
-                            📂 Bulk CSV Upload
-                        </button>
-                    </div>
-
-                    <!-- Tab 1 Content: Manual Entry -->
-                    <div id="tabContentManual" class="tab-content active">
-                        <form id="orderForm">
-                            <input type="hidden" id="orderEditId">
-
-                            <div class="form-grid">
-                                <div class="form-group">
-                                    <label for="orderProductSelect">Product Name</label>
-                                    <select id="orderProductSelect" class="form-control" required>
-                                        <option value="">-- Select Product --</option>
-                                    </select>
-                                </div>
-
-                                <div class="form-group">
-                                    <label for="orderQuantity">Quantity (Units)</label>
-                                    <input type="number" id="orderQuantity" class="form-control" placeholder="e.g. 50" min="1" required>
-                                </div>
-
-                                <div class="form-group">
-                                    <label for="orderPriority">Priority Level</label>
-                                    <select id="orderPriority" class="form-control" required>
-                                        <option value="High">🔴 High Priority</option>
-                                        <option value="Medium" selected>🟡 Medium Priority</option>
-                                        <option value="Low">🔵 Low Priority</option>
-                                    </select>
-                                </div>
-
-                                <div class="form-group">
-                                    <label for="orderDeadline">Target Deadline (Date & Time)</label>
-                                    <input type="datetime-local" id="orderDeadline" class="form-control" required>
-                                </div>
-
-                                <div class="form-group">
-                                    <label for="orderProcessingTime">Processing Time per Unit (Hours)</label>
-                                    <input type="number" id="orderProcessingTime" class="form-control" placeholder="e.g. 0.05" step="0.01" min="0.01" required>
-                                </div>
-
-                                <div class="form-group" style="display: flex; align-items: flex-end; gap: 10px;">
-                                    <button type="submit" id="orderFormBtn" class="btn btn-primary" style="flex: 1; padding: 12px;">
-                                        ⚡ Add Order & Analyze
-                                    </button>
-                                    <button type="button" id="cancelOrderEditBtn" class="btn btn-secondary" style="display: none; padding: 12px;">
-                                        Cancel
-                                    </button>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-
-                    <!-- Tab 2 Content: Bulk CSV Upload -->
-                    <div id="tabContentBulk" class="tab-content" style="display: none;">
-                        <div class="bulk-upload-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
-                            <p style="color: var(--text-muted); font-size: 14px;">Upload multiple production orders at once via CSV file.</p>
+                    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                        <h2 class="card-title" id="orderFormTitle">Create New Order & Live Analysis</h2>
+                        <div style="display: flex; gap: 8px; align-items: center;">
                             <button type="button" class="btn btn-secondary btn-sm" onclick="downloadSampleCSV()">
-                                📥 Download Sample CSV
+                                📥 Sample File
                             </button>
+                            <span class="badge badge-info">Live Machine Engine</span>
                         </div>
+                    </div>
 
-                        <!-- Dropzone -->
-                        <div class="drop-zone" id="csvDropZone">
-                            <div class="drop-zone-icon">📄</div>
-                            <div class="drop-zone-prompt">
-                                <strong>Drag & drop your .csv file here</strong> or <span class="browse-link" style="color: var(--primary-color); cursor: pointer; text-decoration: underline;">Browse files</span>
-                            </div>
-                            <div class="drop-zone-sub" style="margin-top: 6px; font-size: 12px; color: var(--text-muted);">Format: Product, Quantity, Priority, Deadline, ProcessingTime</div>
-                            <input type="file" id="csvFileInput" accept=".csv" class="drop-zone-input" style="display: none;">
-                        </div>
+                    <!-- Single Compact Form -->
+                    <form id="orderForm">
+                        <input type="hidden" id="orderEditId">
 
-                        <!-- Parsed CSV Preview Table (Hidden until parsed) -->
-                        <div id="csvPreviewContainer" style="display: none; margin-top: 20px;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                                <h3 style="font-size: 16px; font-weight: 600;">CSV Parsed Orders Preview</h3>
-                                <span id="csvValidationSummary" class="badge badge-info">0 Orders Loaded</span>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="orderProductSelect">Product Name</label>
+                                <select id="orderProductSelect" class="form-control" required>
+                                    <option value="">-- Select Product --</option>
+                                </select>
                             </div>
 
-                            <div class="table-responsive" style="max-height: 250px; overflow-y: auto;">
-                                <table class="custom-table" style="font-size: 13px;">
+                            <div class="form-group">
+                                <label for="orderQuantity">Quantity</label>
+                                <input type="number" id="orderQuantity" class="form-control" placeholder="e.g. 50" min="1" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="orderPriority">Priority</label>
+                                <select id="orderPriority" class="form-control" required>
+                                    <option value="High">🔴 High</option>
+                                    <option value="Medium" selected>🟡 Medium</option>
+                                    <option value="Low">🔵 Low</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="orderDeadline">Deadline</label>
+                                <input type="datetime-local" id="orderDeadline" class="form-control" required>
+                            </div>
+
+                            <input type="hidden" id="orderProcessingTime" value="0.05">
+
+                            <div class="form-group" style="display: flex; align-items: flex-end; gap: 10px;">
+                                <button type="submit" id="orderFormBtn" class="btn btn-primary" style="flex: 1; height: 42px;">
+                                    ⚡ Add & Analyze
+                                </button>
+                                <button type="button" id="cancelOrderEditBtn" class="btn btn-secondary" style="display: none; height: 42px;">
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+
+                    <!-- Compact File Upload Zone Bar -->
+                    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px dashed var(--border-color);">
+                        <div class="drop-zone-compact" id="csvDropZone" style="display: flex; align-items: center; justify-content: space-between; padding: 12px 18px; border: 2px dashed var(--border-color); border-radius: 10px; background: rgba(37, 99, 235, 0.03); cursor: pointer; flex-wrap: wrap; gap: 10px;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <span style="font-size: 22px;">📁</span>
+                                <div>
+                                    <strong style="font-size: 13px;">Bulk File Upload (.csv, .json, .txt)</strong>
+                                    <div style="font-size: 11px; color: var(--text-muted);">Drag & drop any file here or click to browse</div>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-secondary btn-sm" style="pointer-events: none;">
+                                📤 Upload Any Order File
+                            </button>
+                            <input type="file" id="csvFileInput" accept="*" class="drop-zone-input" style="display: none;">
+                        </div>
+
+                        <!-- Parsed CSV/File Preview Table (Shows when file uploaded) -->
+                        <div id="csvPreviewContainer" style="display: none; margin-top: 15px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                <h3 style="font-size: 14px; font-weight: 600;">Uploaded File Preview</h3>
+                                <span id="csvValidationSummary" class="badge badge-info">0 Orders</span>
+                            </div>
+
+                            <div class="table-responsive" style="max-height: 180px; overflow-y: auto;">
+                                <table class="custom-table" style="font-size: 12px;">
                                     <thead>
                                         <tr>
                                             <th>#</th>
                                             <th>Product Name</th>
-                                            <th>Quantity</th>
+                                            <th>Qty</th>
                                             <th>Priority</th>
-                                            <th>Target Deadline</th>
-                                            <th>Processing Time (hrs/unit)</th>
-                                            <th>Validation</th>
+                                            <th>Deadline</th>
+                                            <th>Status</th>
                                         </tr>
                                     </thead>
                                     <tbody id="csvPreviewTableBody">
@@ -193,10 +179,10 @@
                                 </table>
                             </div>
 
-                            <div style="margin-top: 15px; display: flex; justify-content: flex-end; gap: 10px;">
-                                <button type="button" class="btn btn-secondary" onclick="resetBulkCSV()">Clear CSV</button>
-                                <button type="button" id="analyzeBulkBtn" class="btn btn-primary" onclick="analyzeBulkCSVOrders()">
-                                    🚀 Parse & Analyze Bulk Orders
+                            <div style="margin-top: 10px; display: flex; justify-content: flex-end; gap: 10px;">
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="resetBulkCSV()">Clear File</button>
+                                <button type="button" id="analyzeBulkBtn" class="btn btn-primary btn-sm" onclick="analyzeBulkCSVOrders()">
+                                    🚀 Analyze & Schedule File Orders
                                 </button>
                             </div>
                         </div>

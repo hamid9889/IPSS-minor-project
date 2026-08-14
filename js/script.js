@@ -817,23 +817,79 @@ function initBulkCSVUpload() {
 }
 
 function handleCSVFile(file) {
-    if (!file.name.toLowerCase().endsWith('.csv')) {
-        alert('Please upload a valid .csv file!');
-        return;
-    }
-
+    const fileName = file.name.toLowerCase();
     const reader = new FileReader();
+
     reader.onload = function (e) {
         const text = e.target.result;
-        parseCSVText(text);
+        if (fileName.endsWith('.json')) {
+            parseJSONText(text);
+        } else {
+            parseCSVText(text);
+        }
     };
     reader.readAsText(file);
 }
 
+function parseJSONText(text) {
+    try {
+        const data = JSON.parse(text);
+        const list = Array.isArray(data) ? data : [data];
+
+        parsedBulkOrders = [];
+        let validCount = 0;
+        let invalidCount = 0;
+
+        list.forEach((item, idx) => {
+            const product = item.product || item.productName || '';
+            const qty = parseInt(item.quantity || item.qty);
+            const rawP = item.priority || 'Medium';
+            const priority = rawP.charAt(0).toUpperCase() + rawP.slice(1).toLowerCase();
+            const deadline = item.deadline || '';
+            const procTime = parseFloat(item.processingTime) || 0.05;
+
+            let isValid = true;
+            let errors = [];
+
+            if (!product) { isValid = false; errors.push('Product missing'); }
+            if (isNaN(qty) || qty <= 0) { isValid = false; errors.push('Invalid Quantity'); }
+            if (!['High', 'Medium', 'Low'].includes(priority)) { isValid = false; errors.push('Priority invalid'); }
+            if (!deadline) { isValid = false; errors.push('Deadline missing'); }
+
+            if (isValid) validCount++; else invalidCount++;
+
+            parsedBulkOrders.push({
+                id: Date.now() + idx,
+                orderId: 'ORD-FILE' + (100 + idx),
+                productName: product,
+                quantity: qty || 0,
+                priority: priority,
+                deadline: deadline,
+                processingTime: procTime,
+                status: 'Pending',
+                isValid: isValid,
+                errors: errors
+            });
+        });
+
+        renderCSVPreviewTable();
+        const summaryBadge = document.getElementById('csvValidationSummary');
+        if (summaryBadge) {
+            summaryBadge.textContent = `${validCount} Valid, ${invalidCount} Invalid`;
+            summaryBadge.className = invalidCount > 0 ? 'badge badge-warning' : 'badge badge-success';
+        }
+
+        const previewContainer = document.getElementById('csvPreviewContainer');
+        if (previewContainer) previewContainer.style.display = 'block';
+    } catch (err) {
+        alert('Could not parse JSON file. Please check file format.');
+    }
+}
+
 function parseCSVText(text) {
     const lines = text.split(/\r\n|\n/).filter(line => line.trim().length > 0);
-    if (lines.length < 2) {
-        alert('CSV file is empty or missing data rows!');
+    if (lines.length < 1) {
+        alert('File is empty or missing data!');
         return;
     }
 
@@ -841,14 +897,17 @@ function parseCSVText(text) {
     let validCount = 0;
     let invalidCount = 0;
 
-    for (let i = 1; i < lines.length; i++) {
-        const cols = lines[i].split(',').map(c => c.trim());
-        if (cols.length < 4) continue;
+    // Auto-detect header row
+    const startIdx = lines[0].toLowerCase().includes('product') ? 1 : 0;
+
+    for (let i = startIdx; i < lines.length; i++) {
+        const cols = lines[i].split(/,|\t/).map(c => c.trim().replace(/^"|"$/g, ''));
+        if (cols.length < 2) continue;
 
         const product = cols[0] || '';
         const qty = parseInt(cols[1]);
         const rawPriority = cols[2] ? cols[2].charAt(0).toUpperCase() + cols[2].slice(1).toLowerCase() : 'Medium';
-        const deadline = cols[3] || '';
+        const deadline = cols[3] || new Date(Date.now() + 86400000 * 3).toISOString().slice(0, 16);
         const procTime = parseFloat(cols[4]) || 0.05;
 
         let isValid = true;
@@ -857,13 +916,12 @@ function parseCSVText(text) {
         if (!product) { isValid = false; errors.push('Product missing'); }
         if (isNaN(qty) || qty <= 0) { isValid = false; errors.push('Invalid Quantity'); }
         if (!['High', 'Medium', 'Low'].includes(rawPriority)) { isValid = false; errors.push('Priority must be High/Medium/Low'); }
-        if (!deadline) { isValid = false; errors.push('Deadline missing'); }
 
         if (isValid) validCount++; else invalidCount++;
 
         parsedBulkOrders.push({
             id: Date.now() + i,
-            orderId: 'ORD-CSV' + (100 + i),
+            orderId: 'ORD-FILE' + (100 + i),
             productName: product,
             quantity: qty || 0,
             priority: rawPriority,
@@ -878,7 +936,7 @@ function parseCSVText(text) {
     renderCSVPreviewTable();
     const summaryBadge = document.getElementById('csvValidationSummary');
     if (summaryBadge) {
-        summaryBadge.textContent = `${validCount} Valid, ${invalidCount} Invalid Orders`;
+        summaryBadge.textContent = `${validCount} Valid, ${invalidCount} Invalid`;
         summaryBadge.className = invalidCount > 0 ? 'badge badge-warning' : 'badge badge-success';
     }
 

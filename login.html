@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,6 +8,7 @@
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/login.css">
 </head>
+
 <body class="login-body">
 
     <!-- Header with Back to Home Link -->
@@ -24,7 +26,9 @@
             <h2>Welcome Back</h2>
             <p>Please enter your credentials to sign in.</p>
 
-            <div id="loginErrorMessage" class="error-banner" style="display: none; background-color: #fee2e2; color: #b91c1c; padding: 10px; border-radius: 6px; font-size: 13px; margin-bottom: 15px; text-align: center;"></div>
+            <div id="loginErrorMessage" class="error-banner"
+                style="display: none; background-color: #fee2e2; color: #b91c1c; padding: 10px; border-radius: 6px; font-size: 13px; margin-bottom: 15px; text-align: center;">
+            </div>
 
             <form id="loginForm">
                 <div class="form-group">
@@ -34,7 +38,8 @@
 
                 <div class="form-group">
                     <label for="password">Password</label>
-                    <input type="password" id="password" class="form-control" placeholder="••••••••" value="admin123" required>
+                    <input type="password" id="password" class="form-control" placeholder="••••••••" value="admin123"
+                        required>
                 </div>
 
                 <div class="form-options">
@@ -47,12 +52,11 @@
                 <button type="submit" class="btn-primary btn-full">Sign In to Dashboard</button>
             </form>
 
-            <div class="signup-link">
-                Demo Credentials: <strong>admin / admin123</strong>
-            </div>
+
         </div>
     </div>
 
     <script src="js/script.js"></script>
 </body>
+
 </html>

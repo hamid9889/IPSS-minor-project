@@ -83,48 +83,124 @@
                     </div>
                 </div>
 
-                <!-- Add / Edit Order Form Card -->
+                <!-- Dual Order Entry & Pre-Scheduling Card -->
                 <div class="card">
-                    <div class="card-header">
-                        <h2 class="card-title" id="orderFormTitle">Create New Order</h2>
+                    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                        <h2 class="card-title" id="orderFormTitle">Dual Order Entry & Pre-Scheduling</h2>
+                        <span class="badge badge-info">Live Availability Engine</span>
                     </div>
 
-                    <form id="orderForm">
-                        <input type="hidden" id="orderEditId">
+                    <!-- Tab Headers -->
+                    <div class="tab-container">
+                        <button class="tab-btn active" id="tabBtnManual" onclick="switchOrderTab('manual')">
+                            📝 Manual Order Entry
+                        </button>
+                        <button class="tab-btn" id="tabBtnBulk" onclick="switchOrderTab('bulk')">
+                            📂 Bulk CSV Upload
+                        </button>
+                    </div>
 
-                        <div class="form-grid">
-                            <div class="form-group">
-                                <label for="orderProductSelect">Product</label>
-                                <select id="orderProductSelect" class="form-control" required>
-                                    <option value="">-- Select Product --</option>
-                                </select>
+                    <!-- Tab 1 Content: Manual Entry -->
+                    <div id="tabContentManual" class="tab-content active">
+                        <form id="orderForm">
+                            <input type="hidden" id="orderEditId">
+
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label for="orderProductSelect">Product Name</label>
+                                    <select id="orderProductSelect" class="form-control" required>
+                                        <option value="">-- Select Product --</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="orderQuantity">Quantity (Units)</label>
+                                    <input type="number" id="orderQuantity" class="form-control" placeholder="e.g. 50" min="1" required>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="orderPriority">Priority Level</label>
+                                    <select id="orderPriority" class="form-control" required>
+                                        <option value="High">🔴 High Priority</option>
+                                        <option value="Medium" selected>🟡 Medium Priority</option>
+                                        <option value="Low">🔵 Low Priority</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="orderDeadline">Target Deadline (Date & Time)</label>
+                                    <input type="datetime-local" id="orderDeadline" class="form-control" required>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="orderProcessingTime">Processing Time per Unit (Hours)</label>
+                                    <input type="number" id="orderProcessingTime" class="form-control" placeholder="e.g. 0.05" step="0.01" min="0.01" required>
+                                </div>
+
+                                <div class="form-group" style="display: flex; align-items: flex-end; gap: 10px;">
+                                    <button type="submit" id="orderFormBtn" class="btn btn-primary" style="flex: 1; padding: 12px;">
+                                        ⚡ Add Order & Analyze
+                                    </button>
+                                    <button type="button" id="cancelOrderEditBtn" class="btn btn-secondary" style="display: none; padding: 12px;">
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Tab 2 Content: Bulk CSV Upload -->
+                    <div id="tabContentBulk" class="tab-content" style="display: none;">
+                        <div class="bulk-upload-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+                            <p style="color: var(--text-muted); font-size: 14px;">Upload multiple production orders at once via CSV file.</p>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="downloadSampleCSV()">
+                                📥 Download Sample CSV
+                            </button>
+                        </div>
+
+                        <!-- Dropzone -->
+                        <div class="drop-zone" id="csvDropZone">
+                            <div class="drop-zone-icon">📄</div>
+                            <div class="drop-zone-prompt">
+                                <strong>Drag & drop your .csv file here</strong> or <span class="browse-link" style="color: var(--primary-color); cursor: pointer; text-decoration: underline;">Browse files</span>
+                            </div>
+                            <div class="drop-zone-sub" style="margin-top: 6px; font-size: 12px; color: var(--text-muted);">Format: Product, Quantity, Priority, Deadline, ProcessingTime</div>
+                            <input type="file" id="csvFileInput" accept=".csv" class="drop-zone-input" style="display: none;">
+                        </div>
+
+                        <!-- Parsed CSV Preview Table (Hidden until parsed) -->
+                        <div id="csvPreviewContainer" style="display: none; margin-top: 20px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                <h3 style="font-size: 16px; font-weight: 600;">CSV Parsed Orders Preview</h3>
+                                <span id="csvValidationSummary" class="badge badge-info">0 Orders Loaded</span>
                             </div>
 
-                            <div class="form-group">
-                                <label for="orderQuantity">Quantity</label>
-                                <input type="number" id="orderQuantity" class="form-control" placeholder="e.g. 50" min="1" required>
+                            <div class="table-responsive" style="max-height: 250px; overflow-y: auto;">
+                                <table class="custom-table" style="font-size: 13px;">
+                                    <thead>
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Product Name</th>
+                                            <th>Quantity</th>
+                                            <th>Priority</th>
+                                            <th>Target Deadline</th>
+                                            <th>Processing Time (hrs/unit)</th>
+                                            <th>Validation</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="csvPreviewTableBody">
+                                    </tbody>
+                                </table>
                             </div>
 
-                            <div class="form-group">
-                                <label for="orderPriority">Priority</label>
-                                <select id="orderPriority" class="form-control" required>
-                                    <option value="High">High</option>
-                                    <option value="Medium" selected>Medium</option>
-                                    <option value="Low">Low</option>
-                                </select>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="orderDeadline">Deadline</label>
-                                <input type="date" id="orderDeadline" class="form-control" required>
-                            </div>
-
-                            <div>
-                                <button type="submit" id="orderFormBtn" class="btn btn-primary">Add Order</button>
-                                <button type="button" id="cancelOrderEditBtn" class="btn btn-secondary" style="display: none; margin-left: 5px;">Cancel</button>
+                            <div style="margin-top: 15px; display: flex; justify-content: flex-end; gap: 10px;">
+                                <button type="button" class="btn btn-secondary" onclick="resetBulkCSV()">Clear CSV</button>
+                                <button type="button" id="analyzeBulkBtn" class="btn btn-primary" onclick="analyzeBulkCSVOrders()">
+                                    🚀 Parse & Analyze Bulk Orders
+                                </button>
                             </div>
                         </div>
-                    </form>
+                    </div>
                 </div>
 
                 <!-- Orders Table Card -->
@@ -154,6 +230,93 @@
                 </div>
             </div>
         </main>
+    </div>
+
+    <!-- Pre-Schedule Analysis Modal -->
+    <div id="analysisModal" class="modal-overlay" style="display: none;">
+        <div class="modal-content modal-lg">
+            <div class="modal-header">
+                <div>
+                    <h2 class="modal-title">⚡ Pre-Schedule Live Analysis Report</h2>
+                    <p style="font-size: 13px; color: var(--text-muted); margin-top: 2px;">Smart Order-to-Machine Availability & Deadline Risk Simulation</p>
+                </div>
+                <button class="modal-close-btn" onclick="closeAnalysisModal()">&times;</button>
+            </div>
+
+            <div class="modal-body">
+                <!-- Summary KPI Cards Grid -->
+                <div class="modal-kpi-grid">
+                    <div class="kpi-card">
+                        <div class="kpi-icon">📦</div>
+                        <div>
+                            <div class="kpi-label">Orders to Process</div>
+                            <div class="kpi-value" id="kpiTotalOrders">0</div>
+                        </div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-icon">🔢</div>
+                        <div>
+                            <div class="kpi-label">Total Units</div>
+                            <div class="kpi-value" id="kpiTotalUnits">0</div>
+                        </div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-icon">⏱️</div>
+                        <div>
+                            <div class="kpi-label">Total Est. Production</div>
+                            <div class="kpi-value" id="kpiEstDuration">0 hrs</div>
+                        </div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-icon">🏭</div>
+                        <div>
+                            <div class="kpi-label">Available Machines</div>
+                            <div class="kpi-value" id="kpiAvailableMachines">0 / 0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mock Machine Status Breakdown -->
+                <div style="margin-bottom: 20px;">
+                    <h3 style="font-size: 15px; font-weight: 700; margin-bottom: 10px;">🏭 Live Machine Status & Workload Allocation</h3>
+                    <div id="machineStatusChips" class="machine-status-chips">
+                        <!-- Populated by script.js -->
+                    </div>
+                </div>
+
+                <!-- Smart Allocation & Deadline Risk Table -->
+                <div>
+                    <h3 style="font-size: 15px; font-weight: 700; margin-bottom: 10px;">📋 Order Allocation & Risk Status</h3>
+                    <div class="table-responsive">
+                        <table class="custom-table" style="font-size: 13px;">
+                            <thead>
+                                <tr>
+                                    <th>Order ID</th>
+                                    <th>Product</th>
+                                    <th>Qty</th>
+                                    <th>Priority</th>
+                                    <th>Assigned Machine</th>
+                                    <th>Est. Start Time</th>
+                                    <th>Est. End Time</th>
+                                    <th>Target Deadline</th>
+                                    <th>Risk Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="analysisTableBody">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeAnalysisModal()">Cancel / Re-edit</button>
+                <button type="button" class="btn btn-primary" onclick="confirmAndSaveAnalysisOrders()">
+                    ✅ Confirm & Save to Orders List
+                </button>
+            </div>
+        </div>
     </div>
 
     <script src="js/script.js"></script>

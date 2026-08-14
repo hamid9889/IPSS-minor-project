@@ -180,6 +180,7 @@ document.addEventListener('DOMContentLoaded', function () {
         renderOrdersTable();
         setupOrderForm();
         setupOrderFilters();
+        initBulkCSVUpload();
     } else if (currentPage === 'schedule.html') {
         renderScheduleTable();
         renderGanttTimeline();
@@ -712,8 +713,30 @@ function resetMachineForm() {
 }
 
 // --- ORDERS PAGE ---
+function switchOrderTab(tabName) {
+    const manualBtn = document.getElementById('tabBtnManual');
+    const bulkBtn = document.getElementById('tabBtnBulk');
+    const manualContent = document.getElementById('tabContentManual');
+    const bulkContent = document.getElementById('tabContentBulk');
+
+    if (!manualBtn || !bulkBtn) return;
+
+    if (tabName === 'manual') {
+        manualBtn.classList.add('active');
+        bulkBtn.classList.remove('active');
+        manualContent.style.display = 'block';
+        bulkContent.style.display = 'none';
+    } else {
+        bulkBtn.classList.add('active');
+        manualBtn.classList.remove('active');
+        bulkContent.style.display = 'block';
+        manualContent.style.display = 'none';
+    }
+}
+
 function populateOrderProductSelect() {
     const productSelect = document.getElementById('orderProductSelect');
+    const procTimeInput = document.getElementById('orderProcessingTime');
     if (!productSelect) return;
 
     const products = getData('itps_products');
@@ -725,6 +748,370 @@ function populateOrderProductSelect() {
         option.textContent = p.productName;
         productSelect.appendChild(option);
     });
+
+    productSelect.addEventListener('change', function () {
+        const selected = products.find(p => p.productName === this.value);
+        if (selected && procTimeInput) {
+            procTimeInput.value = selected.processingTime || 0.05;
+        }
+    });
+}
+
+// --- Sample CSV Generator ---
+function downloadSampleCSV() {
+    const csvHeader = "Product,Quantity,Priority,Deadline,ProcessingTime\n";
+    const sampleRows = [
+        "Laptop Assembly,60,High,2026-08-25T17:00,0.05",
+        "Mouse Housing,150,Medium,2026-08-26T14:00,0.02",
+        "Motor Shaft,80,High,2026-08-24T12:00,0.08",
+        "Control Panel Unit,40,Low,2026-08-28T18:00,0.10"
+    ].join("\n");
+
+    const blob = new Blob([csvHeader + sampleRows], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", "sample_production_orders.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+// --- Bulk CSV Drag & Drop Upload Engine ---
+let parsedBulkOrders = [];
+
+function initBulkCSVUpload() {
+    const dropZone = document.getElementById('csvDropZone');
+    const fileInput = document.getElementById('csvFileInput');
+    if (!dropZone || !fileInput) return;
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.addEventListener(eventName, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.add('drop-zone--over');
+        }, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.remove('drop-zone--over');
+        }, false);
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        if (files.length) handleCSVFile(files[0]);
+    });
+
+    dropZone.addEventListener('click', () => {
+        fileInput.click();
+    });
+
+    fileInput.addEventListener('change', (e) => {
+        if (fileInput.files.length) handleCSVFile(fileInput.files[0]);
+    });
+}
+
+function handleCSVFile(file) {
+    if (!file.name.toLowerCase().endsWith('.csv')) {
+        alert('Please upload a valid .csv file!');
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function (e) {
+        const text = e.target.result;
+        parseCSVText(text);
+    };
+    reader.readAsText(file);
+}
+
+function parseCSVText(text) {
+    const lines = text.split(/\r\n|\n/).filter(line => line.trim().length > 0);
+    if (lines.length < 2) {
+        alert('CSV file is empty or missing data rows!');
+        return;
+    }
+
+    parsedBulkOrders = [];
+    let validCount = 0;
+    let invalidCount = 0;
+
+    for (let i = 1; i < lines.length; i++) {
+        const cols = lines[i].split(',').map(c => c.trim());
+        if (cols.length < 4) continue;
+
+        const product = cols[0] || '';
+        const qty = parseInt(cols[1]);
+        const rawPriority = cols[2] ? cols[2].charAt(0).toUpperCase() + cols[2].slice(1).toLowerCase() : 'Medium';
+        const deadline = cols[3] || '';
+        const procTime = parseFloat(cols[4]) || 0.05;
+
+        let isValid = true;
+        let errors = [];
+
+        if (!product) { isValid = false; errors.push('Product missing'); }
+        if (isNaN(qty) || qty <= 0) { isValid = false; errors.push('Invalid Quantity'); }
+        if (!['High', 'Medium', 'Low'].includes(rawPriority)) { isValid = false; errors.push('Priority must be High/Medium/Low'); }
+        if (!deadline) { isValid = false; errors.push('Deadline missing'); }
+
+        if (isValid) validCount++; else invalidCount++;
+
+        parsedBulkOrders.push({
+            id: Date.now() + i,
+            orderId: 'ORD-CSV' + (100 + i),
+            productName: product,
+            quantity: qty || 0,
+            priority: rawPriority,
+            deadline: deadline,
+            processingTime: procTime,
+            status: 'Pending',
+            isValid: isValid,
+            errors: errors
+        });
+    }
+
+    renderCSVPreviewTable();
+    const summaryBadge = document.getElementById('csvValidationSummary');
+    if (summaryBadge) {
+        summaryBadge.textContent = `${validCount} Valid, ${invalidCount} Invalid Orders`;
+        summaryBadge.className = invalidCount > 0 ? 'badge badge-warning' : 'badge badge-success';
+    }
+
+    const previewContainer = document.getElementById('csvPreviewContainer');
+    if (previewContainer) previewContainer.style.display = 'block';
+}
+
+function renderCSVPreviewTable() {
+    const tbody = document.getElementById('csvPreviewTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    parsedBulkOrders.forEach((row, idx) => {
+        const tr = document.createElement('tr');
+        tr.className = row.isValid ? 'tr-valid' : 'tr-invalid';
+
+        tr.innerHTML = `
+            <td>#${idx + 1}</td>
+            <td><strong>${row.productName || '<em>Empty</em>'}</strong></td>
+            <td>${row.quantity}</td>
+            <td><span class="badge ${row.priority === 'High' ? 'badge-danger' : row.priority === 'Medium' ? 'badge-warning' : 'badge-info'}">${row.priority}</span></td>
+            <td>${row.deadline || '<em>N/A</em>'}</td>
+            <td>${row.processingTime} hrs/unit</td>
+            <td>
+                ${row.isValid 
+                    ? '<span class="badge badge-success">✓ Valid</span>' 
+                    : `<span class="badge badge-danger" title="${row.errors.join(', ')}">❌ ${row.errors[0]}</span>`}
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function resetBulkCSV() {
+    parsedBulkOrders = [];
+    const previewContainer = document.getElementById('csvPreviewContainer');
+    const fileInput = document.getElementById('csvFileInput');
+    if (previewContainer) previewContainer.style.display = 'none';
+    if (fileInput) fileInput.value = '';
+}
+
+// --- Pre-Scheduling Live Analysis Engine ---
+let currentAnalysisOrders = [];
+
+function analyzePreSchedule(ordersToAnalyze) {
+    if (!ordersToAnalyze || ordersToAnalyze.length === 0) {
+        alert('No valid orders to analyze!');
+        return;
+    }
+
+    const machines = getData('itps_machines');
+    const availableMachines = machines.filter(m => m.status === 'Available' || m.status === 'Working');
+
+    if (availableMachines.length === 0) {
+        alert('Warning: No operational machines currently available in system!');
+        return;
+    }
+
+    // Sort orders: Priority High -> Medium -> Low, then Earliest Deadline
+    const priorityWeight = { 'High': 3, 'Medium': 2, 'Low': 1 };
+    const sortedOrders = [...ordersToAnalyze].sort((a, b) => {
+        const pA = priorityWeight[a.priority] || 1;
+        const pB = priorityWeight[b.priority] || 1;
+        if (pA !== pB) return pB - pA;
+        return new Date(a.deadline) - new Date(b.deadline);
+    });
+
+    let totalUnits = 0;
+    let totalEstDurationHours = 0;
+
+    // Track machine finish times starting from current timestamp
+    const now = new Date();
+    const machineScheduleTrack = availableMachines.map(m => ({
+        machineName: m.machineName,
+        status: m.status,
+        availableAt: new Date(now),
+        assignedOrdersCount: 0,
+        totalWorkloadHours: 0
+    }));
+
+    const allocatedOrders = [];
+
+    sortedOrders.forEach((order, idx) => {
+        const qty = parseInt(order.quantity) || 1;
+        const procTimePerUnit = parseFloat(order.processingTime) || 0.05;
+        const durationHours = qty * procTimePerUnit;
+
+        totalUnits += qty;
+        totalEstDurationHours += durationHours;
+
+        // Assign to machine with earliest available slot
+        machineScheduleTrack.sort((a, b) => a.availableAt - b.availableAt);
+        const assignedM = machineScheduleTrack[0];
+
+        const startTime = new Date(assignedM.availableAt);
+        const endTime = new Date(startTime.getTime() + durationHours * 3600 * 1000);
+
+        assignedM.availableAt = new Date(endTime);
+        assignedM.assignedOrdersCount += 1;
+        assignedM.totalWorkloadHours += durationHours;
+
+        // Deadline risk calculation
+        const deadlineDate = new Date(order.deadline);
+        const isDelayed = endTime > deadlineDate;
+
+        allocatedOrders.push({
+            ...order,
+            orderId: order.orderId || ('ORD-' + Math.floor(100 + Math.random() * 900)),
+            assignedMachine: assignedM.machineName,
+            startTimeFormatted: formatDateTime(startTime),
+            endTimeFormatted: formatDateTime(endTime),
+            deadlineFormatted: formatDateTime(deadlineDate),
+            durationHours: durationHours.toFixed(2),
+            riskStatus: isDelayed ? 'Delay Alert' : 'On Track'
+        });
+    });
+
+    currentAnalysisOrders = allocatedOrders;
+
+    openAnalysisModal({
+        totalOrders: ordersToAnalyze.length,
+        totalUnits: totalUnits,
+        totalEstDurationHours: totalEstDurationHours.toFixed(1),
+        allMachines: machines,
+        availableMachinesCount: availableMachines.length,
+        machineScheduleTrack: machineScheduleTrack,
+        allocatedOrders: allocatedOrders
+    });
+}
+
+function formatDateTime(d) {
+    if (isNaN(d.getTime())) return 'N/A';
+    return d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+function openAnalysisModal(data) {
+    const modal = document.getElementById('analysisModal');
+    if (!modal) return;
+
+    // Fill KPI Metrics
+    document.getElementById('kpiTotalOrders').textContent = data.totalOrders;
+    document.getElementById('kpiTotalUnits').textContent = data.totalUnits;
+    document.getElementById('kpiEstDuration').textContent = data.totalEstDurationHours + ' hrs';
+    document.getElementById('kpiAvailableMachines').textContent = `${data.availableMachinesCount} / ${data.allMachines.length}`;
+
+    // Fill Machine Chips
+    const chipsContainer = document.getElementById('machineStatusChips');
+    if (chipsContainer) {
+        chipsContainer.innerHTML = '';
+        data.allMachines.forEach(m => {
+            const trackObj = data.machineScheduleTrack.find(t => t.machineName === m.machineName);
+            const statusLower = m.status ? m.status.toLowerCase() : 'available';
+            const workloadText = trackObj ? ` (${trackObj.totalWorkloadHours.toFixed(1)} hrs allocated)` : ' (0 hrs)';
+
+            const chip = document.createElement('div');
+            chip.className = 'machine-chip';
+            chip.innerHTML = `
+                <span class="chip-status-dot ${statusLower}"></span>
+                <strong>${m.machineName}</strong>: ${m.status}${workloadText}
+            `;
+            chipsContainer.appendChild(chip);
+        });
+    }
+
+    // Fill Analysis Table
+    const tbody = document.getElementById('analysisTableBody');
+    if (tbody) {
+        tbody.innerHTML = '';
+        data.allocatedOrders.forEach(o => {
+            const tr = document.createElement('tr');
+            const isDelay = o.riskStatus === 'Delay Alert';
+
+            tr.innerHTML = `
+                <td><strong>${o.orderId}</strong></td>
+                <td>${o.productName}</td>
+                <td>${o.quantity} units</td>
+                <td><span class="badge ${o.priority === 'High' ? 'badge-danger' : o.priority === 'Medium' ? 'badge-warning' : 'badge-info'}">${o.priority}</span></td>
+                <td><span class="badge badge-info">🏭 ${o.assignedMachine}</span></td>
+                <td>${o.startTimeFormatted}</td>
+                <td>${o.endTimeFormatted}</td>
+                <td>${o.deadlineFormatted}</td>
+                <td>
+                    <span class="badge ${isDelay ? 'badge-delay-alert' : 'badge-on-track'}">
+                        ${isDelay ? '🔴 Delay Alert' : '🟢 On Track'}
+                    </span>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    modal.style.display = 'flex';
+}
+
+function closeAnalysisModal() {
+    const modal = document.getElementById('analysisModal');
+    if (modal) modal.style.display = 'none';
+}
+
+function confirmAndSaveAnalysisOrders() {
+    if (!currentAnalysisOrders || currentAnalysisOrders.length === 0) return;
+
+    let orders = getData('itps_orders');
+
+    currentAnalysisOrders.forEach(o => {
+        orders.push({
+            id: o.id || Date.now(),
+            orderId: o.orderId,
+            productName: o.productName,
+            quantity: o.quantity,
+            priority: o.priority,
+            deadline: o.deadline.split('T')[0] || o.deadline,
+            status: 'Pending'
+        });
+    });
+
+    saveData('itps_orders', orders);
+    addRecentActivity(`Analyzed & Added ${currentAnalysisOrders.length} order(s) to system`, 'success');
+
+    closeAnalysisModal();
+    resetOrderForm();
+    resetBulkCSV();
+    renderOrdersTable();
+    alert(`Successfully saved ${currentAnalysisOrders.length} order(s) to production list!`);
+}
+
+function analyzeBulkCSVOrders() {
+    const validOrders = parsedBulkOrders.filter(o => o.isValid);
+    if (validOrders.length === 0) {
+        alert('No valid orders found in CSV to analyze!');
+        return;
+    }
+    analyzePreSchedule(validOrders);
 }
 
 function renderOrdersTable() {
@@ -804,36 +1191,34 @@ function setupOrderForm() {
         const quantity = parseInt(document.getElementById('orderQuantity').value);
         const priority = document.getElementById('orderPriority').value;
         const deadline = document.getElementById('orderDeadline').value;
+        const procTime = parseFloat(document.getElementById('orderProcessingTime').value) || 0.05;
 
         if (!productName) { alert('Please select a product.'); return; }
         if (isNaN(quantity) || quantity <= 0) { alert('Please enter a valid quantity.'); return; }
-        if (!deadline) { alert('Please select a deadline date.'); return; }
+        if (!deadline) { alert('Please select a deadline.'); return; }
 
         let orders = getData('itps_orders');
 
         if (editId) {
             orders = orders.map(o => o.id == editId ? { ...o, productName, quantity, priority, deadline } : o);
             addRecentActivity(`Updated Order #${editId}`, 'info');
+            saveData('itps_orders', orders);
+            resetOrderForm();
+            renderOrdersTable();
             alert('Order updated successfully!');
         } else {
-            const newOrderId = 'ORD-' + Math.floor(100 + Math.random() * 900);
-            const newOrder = {
+            const singleOrder = [{
                 id: Date.now(),
-                orderId: newOrderId,
+                orderId: 'ORD-' + Math.floor(100 + Math.random() * 900),
                 productName: productName,
                 quantity: quantity,
                 priority: priority,
                 deadline: deadline,
+                processingTime: procTime,
                 status: 'Pending'
-            };
-            orders.push(newOrder);
-            addRecentActivity(`Created Order #${newOrderId}`, 'success');
-            alert('Order created successfully!');
+            }];
+            analyzePreSchedule(singleOrder);
         }
-
-        saveData('itps_orders', orders);
-        resetOrderForm();
-        renderOrdersTable();
     });
 
     if (cancelBtn) cancelBtn.addEventListener('click', resetOrderForm);
@@ -852,6 +1237,8 @@ function editOrder(id) {
         document.getElementById('orderFormBtn').textContent = 'Update Order';
         if (document.getElementById('orderFormTitle')) document.getElementById('orderFormTitle').textContent = 'Edit Production Order';
         if (document.getElementById('cancelOrderEditBtn')) document.getElementById('cancelOrderEditBtn').style.display = 'inline-block';
+        
+        switchOrderTab('manual');
     }
 }
 
@@ -871,9 +1258,10 @@ function resetOrderForm() {
     if (form) form.reset();
     document.getElementById('orderEditId').value = '';
     document.getElementById('orderFormBtn').textContent = 'Add Order';
-    if (document.getElementById('orderFormTitle')) document.getElementById('orderFormTitle').textContent = 'Create New Order';
+    if (document.getElementById('orderFormTitle')) document.getElementById('orderFormTitle').textContent = 'Dual Order Entry & Pre-Scheduling';
     if (document.getElementById('cancelOrderEditBtn')) document.getElementById('cancelOrderEditBtn').style.display = 'none';
 }
+
 
 // --- SCHEDULE PAGE ---
 function renderScheduleTable() {

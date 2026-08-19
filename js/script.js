@@ -1,23 +1,27 @@
 /* 
-===================================================================
-   ITPS - Intelligent Product Scheduling System
-   Enhanced Main JavaScript (js/script.js)
-   Supports Dark Mode, Gantt Timeline, Profile, Search & Navigation
-===================================================================
+
+   IPSS - Intelligent Product Scheduling System
+  
 */
 
 // --- Helper Functions for LocalStorage ---
 function getData(key) {
-    return JSON.parse(localStorage.getItem(key)) || [];
+    let ipssKey = key.replace('itps_', 'ipss_');
+    let legacyKey = key.replace('ipss_', 'itps_');
+    let data = localStorage.getItem(ipssKey) || localStorage.getItem(legacyKey) || localStorage.getItem(key);
+    return JSON.parse(data) || [];
 }
 
 function saveData(key, data) {
-    localStorage.setItem(key, JSON.stringify(data));
+    let ipssKey = key.replace('itps_', 'ipss_');
+    let legacyKey = key.replace('ipss_', 'itps_');
+    localStorage.setItem(ipssKey, JSON.stringify(data));
+    localStorage.setItem(legacyKey, JSON.stringify(data));
 }
 
 // --- Theme (Dark Mode) Manager ---
 function initTheme() {
-    const savedTheme = localStorage.getItem('itps_theme');
+    const savedTheme = localStorage.getItem('ipss_theme') || localStorage.getItem('itps_theme');
     if (savedTheme === 'dark') {
         document.body.classList.add('dark-mode');
         updateThemeToggleButton(true);
@@ -26,6 +30,7 @@ function initTheme() {
 
 function toggleDarkMode() {
     const isDark = document.body.classList.toggle('dark-mode');
+    localStorage.setItem('ipss_theme', isDark ? 'dark' : 'light');
     localStorage.setItem('itps_theme', isDark ? 'dark' : 'light');
     updateThemeToggleButton(isDark);
 }
@@ -47,98 +52,93 @@ function toggleMobileSidebar() {
 
 // --- Initialize Default Storage Data ---
 function initDefaultData() {
-    if (!localStorage.getItem('itps_products')) {
+    if (!localStorage.getItem('ipss_products') && !localStorage.getItem('itps_products')) {
         const defaultProducts = [
             { id: 1, productName: 'Laptop Assembly', category: 'Electronics', processingTime: 2.0, preferredLine: 'M-01' },
             { id: 2, productName: 'Mouse Housing', category: 'Peripherals', processingTime: 1.5, preferredLine: 'M-02' },
             { id: 3, productName: 'Motor Shaft', category: 'Mechanical', processingTime: 3.0, preferredLine: 'M-03' },
             { id: 4, productName: 'Control Panel Unit', category: 'Control Units', processingTime: 4.0, preferredLine: 'M-04' }
         ];
-        saveData('itps_products', defaultProducts);
+        saveData('ipss_products', defaultProducts);
     }
 
-    if (!localStorage.getItem('itps_machines')) {
+    if (!localStorage.getItem('ipss_machines') && !localStorage.getItem('itps_machines')) {
         const defaultMachines = [
             { id: 1, machineName: 'M-01', capacity: 120, status: 'Available' },
             { id: 2, machineName: 'M-02', capacity: 80, status: 'Working' },
             { id: 3, machineName: 'M-03', capacity: 200, status: 'Available' },
             { id: 4, machineName: 'M-04', capacity: 60, status: 'Maintenance' }
         ];
-        saveData('itps_machines', defaultMachines);
+        saveData('ipss_machines', defaultMachines);
     }
 
-    if (!localStorage.getItem('itps_orders')) {
+    if (!localStorage.getItem('ipss_orders') && !localStorage.getItem('itps_orders')) {
         const defaultOrders = [
             { id: 1, orderId: 'ORD-101', productName: 'Laptop Assembly', quantity: 50, priority: 'High', deadline: '2026-08-20', status: 'Pending' },
             { id: 2, orderId: 'ORD-102', productName: 'Mouse Housing', quantity: 100, priority: 'Medium', deadline: '2026-08-22', status: 'Pending' },
             { id: 3, orderId: 'ORD-103', productName: 'Motor Shaft', quantity: 30, priority: 'Low', deadline: '2026-08-25', status: 'Completed' },
             { id: 4, orderId: 'ORD-104', productName: 'Control Panel Unit', quantity: 20, priority: 'High', deadline: '2026-08-18', status: 'Pending' }
         ];
-        saveData('itps_orders', defaultOrders);
+        saveData('ipss_orders', defaultOrders);
     }
 
-    if (!localStorage.getItem('itps_schedule')) {
+    if (!localStorage.getItem('ipss_schedule') && !localStorage.getItem('itps_schedule')) {
         const defaultSchedule = [
             { id: 1, machineName: 'M-01', orderId: 'ORD-101', productName: 'Laptop Assembly', startTime: '09:00', endTime: '11:00', priority: 'High', status: 'Scheduled' },
             { id: 2, machineName: 'M-02', orderId: 'ORD-102', productName: 'Mouse Housing', startTime: '09:00', endTime: '10:30', priority: 'Medium', status: 'Scheduled' }
         ];
-        saveData('itps_schedule', defaultSchedule);
+        saveData('ipss_schedule', defaultSchedule);
     }
 
-    if (!localStorage.getItem('itps_activities')) {
+    if (!localStorage.getItem('ipss_activities') && !localStorage.getItem('itps_activities')) {
         const defaultActivities = [
             { text: 'Order #ORD-104 created', time: '10 mins ago', type: 'info' },
             { text: 'Machine M-02 changed to Working', time: '25 mins ago', type: 'warning' },
             { text: 'Schedule generated successfully', time: '1 hour ago', type: 'success' }
         ];
-        saveData('itps_activities', defaultActivities);
+        saveData('ipss_activities', defaultActivities);
     }
 
     initDefaultProfile();
 }
 
 function initDefaultProfile() {
-    if (!localStorage.getItem('itps_profile')) {
-        const defaultProfile = {
-            fullName: 'Admin User',
-            username: 'admin',
-            email: 'admin@itps.com',
-            phone: '+1 (555) 234-5678',
-            dob: '1990-05-15',
-            gender: 'Male',
-            address: '123 Industrial Parkway, Suite 400',
-            employeeId: 'ITPS-001',
-            department: 'Production & Planning',
-            designation: 'Production Manager',
-            joiningDate: '2022-01-10',
-            workLocation: 'Facility #1, Sector B',
-            status: 'Active',
-            createdDate: '2022-01-10',
-            lastLogin: 'Today (Active Session)',
-            accountType: 'Administrator'
-        };
-        localStorage.setItem('itps_profile', JSON.stringify(defaultProfile));
-    }
+    let stored = localStorage.getItem('ipss_profile') || localStorage.getItem('itps_profile');
+    let profile = stored ? JSON.parse(stored) : {};
+
+    if (!profile.phone || profile.phone === '+1 (555) 234-5678') profile.phone = '+91 **********';
+    if (!profile.dob || profile.dob === '1990-05-15') profile.dob = '2006-06-12';
+    if (!profile.address || profile.address === '123 Industrial Parkway, Suite 400' || profile.address === '123 Lucknow') profile.address = 'Lucknow';
+    if (!profile.fullName) profile.fullName = 'Admin User';
+    if (!profile.username) profile.username = 'admin';
+    if (!profile.email) profile.email = 'admin@ipss.com';
+    if (!profile.employeeId) profile.employeeId = 'IPSS-001';
+    if (!profile.department) profile.department = 'Production & Planning';
+    if (!profile.designation) profile.designation = 'Production Manager';
+
+    saveData('ipss_profile', profile);
 }
 
 function getProfile() {
     initDefaultProfile();
-    return JSON.parse(localStorage.getItem('itps_profile'));
+    let data = localStorage.getItem('ipss_profile') || localStorage.getItem('itps_profile');
+    return JSON.parse(data);
 }
 
 function saveProfileData(profile) {
-    localStorage.setItem('itps_profile', JSON.stringify(profile));
+    saveData('ipss_profile', profile);
 }
 
 function addRecentActivity(text, type = 'info') {
-    let activities = getData('itps_activities');
+    let activities = getData('ipss_activities');
     activities.unshift({ text: text, time: 'Just now', type: type });
     if (activities.length > 8) activities = activities.slice(0, 8);
-    saveData('itps_activities', activities);
+    saveData('ipss_activities', activities);
 }
 
 // --- Logout Action ---
 function logout() {
+    localStorage.removeItem('ipss_user');
     localStorage.removeItem('itps_user');
     window.location.href = 'index.html';
 }
@@ -147,7 +147,7 @@ function logout() {
 function checkAuth(currentPage) {
     const publicPages = ['index.html', 'login.html', ''];
     const isPublic = publicPages.includes(currentPage);
-    const isLoggedIn = localStorage.getItem('itps_user') !== null;
+    const isLoggedIn = (localStorage.getItem('ipss_user') || localStorage.getItem('itps_user')) !== null;
 
     if (!isPublic && !isLoggedIn) {
         window.location.href = 'index.html';
@@ -190,7 +190,6 @@ document.addEventListener('DOMContentLoaded', function () {
     } else if (currentPage === 'profile.html') {
         loadProfile();
         setupEditProfileForm();
-        setupChangePasswordForm();
     } else if (currentPage === 'login.html') {
         setupLoginForm();
     }
@@ -239,10 +238,12 @@ function setupLoginForm() {
         const password = passwordInput ? passwordInput.value.trim() : '';
         const errorMsgDiv = document.getElementById('loginErrorMessage');
 
-        if ((username === 'admin' || username === 'admin@itps.com') && password === 'admin123') {
+        if ((username === 'admin' || username === 'admin@ipss.com' || username === 'admin@itps.com') && password === 'admin123') {
+            localStorage.setItem('ipss_user', JSON.stringify({ username: username, role: 'Production Manager' }));
             localStorage.setItem('itps_user', JSON.stringify({ username: username, role: 'Production Manager' }));
             window.location.href = 'dashboard.html';
         } else if (username !== '' && password !== '') {
+            localStorage.setItem('ipss_user', JSON.stringify({ username: username, role: 'Production Manager' }));
             localStorage.setItem('itps_user', JSON.stringify({ username: username, role: 'Production Manager' }));
             window.location.href = 'dashboard.html';
         } else {
@@ -331,37 +332,7 @@ function setupEditProfileForm() {
     });
 }
 
-function setupChangePasswordForm() {
-    const form = document.getElementById('changePasswordForm');
-    if (!form) return;
 
-    form.addEventListener('submit', function (event) {
-        event.preventDefault();
-
-        const currentPass = document.getElementById('currentPassword').value;
-        const newPass = document.getElementById('newPassword').value;
-        const confirmPass = document.getElementById('confirmNewPassword').value;
-
-        if (!currentPass) {
-            alert('Please enter your current password.');
-            return;
-        }
-
-        if (newPass !== confirmPass) {
-            alert('New password and Confirm password do not match!');
-            return;
-        }
-
-        if (newPass.length < 4) {
-            alert('Password should be at least 4 characters long.');
-            return;
-        }
-
-        alert('Password changed successfully.');
-        form.reset();
-        addRecentActivity('Changed account password', 'warning');
-    });
-}
 
 // --- DASHBOARD PAGE ---
 function updateDashboard() {

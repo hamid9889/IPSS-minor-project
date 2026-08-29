@@ -102,31 +102,80 @@ function initDefaultData() {
     initDefaultProfile();
 }
 
+// --- User Profiles & RBAC State Management ---
+function getCurrentUser() {
+    const raw = localStorage.getItem('ipss_user') || localStorage.getItem('itps_user');
+    if (!raw) return null;
+    try {
+        return JSON.parse(raw);
+    } catch (e) {
+        return null;
+    }
+}
+
 function initDefaultProfile() {
-    let stored = localStorage.getItem('ipss_profile') || localStorage.getItem('itps_profile');
-    let profile = stored ? JSON.parse(stored) : {};
+    // Admin Profile Initialization
+    let adminStored = localStorage.getItem('ipss_profile_admin') || localStorage.getItem('ipss_profile') || localStorage.getItem('itps_profile');
+    let adminProfile = adminStored ? JSON.parse(adminStored) : {};
 
-    if (!profile.phone || profile.phone === '+1 (555) 234-5678') profile.phone = '+91 **********';
-    if (!profile.dob || profile.dob === '1990-05-15') profile.dob = '2006-06-12';
-    if (!profile.address || profile.address === '123 Industrial Parkway, Suite 400' || profile.address === '123 Lucknow') profile.address = 'Lucknow';
-    if (!profile.fullName) profile.fullName = 'Admin User';
-    if (!profile.username) profile.username = 'admin';
-    if (!profile.email) profile.email = 'admin@ipss.com';
-    if (!profile.employeeId) profile.employeeId = 'IPSS-001';
-    if (!profile.department) profile.department = 'Production & Planning';
-    if (!profile.designation) profile.designation = 'Production Manager';
+    if (!adminProfile.phone || adminProfile.phone === '+1 (555) 234-5678') adminProfile.phone = '+91 9876543210';
+    if (!adminProfile.dob || adminProfile.dob === '1990-05-15') adminProfile.dob = '1995-04-15';
+    if (!adminProfile.address || adminProfile.address === '123 Industrial Parkway, Suite 400' || adminProfile.address === '123 Lucknow') adminProfile.address = 'Industrial Area Unit 1, Lucknow';
+    if (!adminProfile.fullName) adminProfile.fullName = 'Admin User';
+    if (!adminProfile.username) adminProfile.username = 'admin';
+    if (!adminProfile.email) adminProfile.email = 'admin@ipss.com';
+    if (!adminProfile.employeeId) adminProfile.employeeId = 'IPSS-ADM-01';
+    if (!adminProfile.department) adminProfile.department = 'Production & Plant Management';
+    if (!adminProfile.designation) adminProfile.designation = 'Production Manager';
+    if (!adminProfile.role) adminProfile.role = 'admin';
+    if (!adminProfile.gender) adminProfile.gender = 'Male';
 
-    saveData('ipss_profile', profile);
+    saveData('ipss_profile_admin', adminProfile);
+
+    // Operator / Standard User Profile Initialization
+    let userStored = localStorage.getItem('ipss_profile_user');
+    let userProfile = userStored ? JSON.parse(userStored) : {};
+
+    if (!userProfile.phone) userProfile.phone = '+91 9123456789';
+    if (!userProfile.dob) userProfile.dob = '1998-08-22';
+    if (!userProfile.address) userProfile.address = 'Assembly Section B, Floor 2, Lucknow';
+    if (!userProfile.fullName) userProfile.fullName = 'Staff Operator';
+    if (!userProfile.username) userProfile.username = 'user';
+    if (!userProfile.email) userProfile.email = 'user@ipss.com';
+    if (!userProfile.employeeId) userProfile.employeeId = 'IPSS-USR-104';
+    if (!userProfile.department) userProfile.department = 'Shopfloor Operations';
+    if (!userProfile.designation) userProfile.designation = 'Machine & Line Operator';
+    if (!userProfile.role) userProfile.role = 'user';
+    if (!userProfile.gender) userProfile.gender = 'Male';
+
+    saveData('ipss_profile_user', userProfile);
+
+    // Fallback sync for legacy keys
+    saveData('ipss_profile', adminProfile);
 }
 
 function getProfile() {
     initDefaultProfile();
-    let data = localStorage.getItem('ipss_profile') || localStorage.getItem('itps_profile');
-    return JSON.parse(data);
+    const currentUser = getCurrentUser();
+    const isUser = currentUser && currentUser.role === 'user';
+    const profileKey = isUser ? 'ipss_profile_user' : 'ipss_profile_admin';
+    let data = localStorage.getItem(profileKey);
+    return data ? JSON.parse(data) : (isUser ? getData('ipss_profile_user') : getData('ipss_profile_admin'));
 }
 
 function saveProfileData(profile) {
-    saveData('ipss_profile', profile);
+    const currentUser = getCurrentUser();
+    const isUser = currentUser && currentUser.role === 'user';
+    const profileKey = isUser ? 'ipss_profile_user' : 'ipss_profile_admin';
+    saveData(profileKey, profile);
+
+    // Update current active user session name & designation if changed
+    if (currentUser) {
+        currentUser.fullName = profile.fullName;
+        currentUser.designation = profile.designation;
+        localStorage.setItem('ipss_user', JSON.stringify(currentUser));
+        localStorage.setItem('itps_user', JSON.stringify(currentUser));
+    }
 }
 
 function addRecentActivity(text, type = 'info') {
@@ -136,6 +185,38 @@ function addRecentActivity(text, type = 'info') {
     saveData('ipss_activities', activities);
 }
 
+// --- Toast Notification Helper ---
+function showToast(title, desc, type = 'info', duration = 4500) {
+    let container = document.querySelector('.toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.className = 'toast-container';
+        document.body.appendChild(container);
+    }
+
+    const toast = document.createElement('div');
+    const toastClass = type === 'error' ? 'toast-error' : (type === 'success' ? 'toast-success' : 'toast-info');
+    const icon = type === 'error' ? '🚫' : (type === 'success' ? '✅' : 'ℹ️');
+
+    toast.className = `custom-toast ${toastClass}`;
+    toast.innerHTML = `
+        <span class="toast-icon">${icon}</span>
+        <div class="toast-content">
+            <div class="toast-title">${title}</div>
+            <div class="toast-desc">${desc}</div>
+        </div>
+    `;
+
+    container.appendChild(toast);
+
+    setTimeout(() => {
+        toast.style.transition = 'all 0.4s ease';
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(100%)';
+        setTimeout(() => toast.remove(), 400);
+    }, duration);
+}
+
 // --- Logout Action ---
 function logout() {
     localStorage.removeItem('ipss_user');
@@ -143,14 +224,73 @@ function logout() {
     window.location.href = 'index.html';
 }
 
-// --- Login Protection Check ---
+// --- Dynamic Role-Based Access Control (RBAC) Route Guard ---
 function checkAuth(currentPage) {
     const publicPages = ['index.html', 'login.html', ''];
     const isPublic = publicPages.includes(currentPage);
-    const isLoggedIn = (localStorage.getItem('ipss_user') || localStorage.getItem('itps_user')) !== null;
+    const currentUser = getCurrentUser();
+    const isLoggedIn = currentUser !== null;
 
     if (!isPublic && !isLoggedIn) {
-        window.location.href = 'index.html';
+        window.location.href = 'login.html';
+        return;
+    }
+
+    // Role Permission Route Protection
+    if (isLoggedIn && currentUser.role === 'user') {
+        // User role is restricted to: Dashboard, Products (view), Reports, Profile
+        const restrictedForUser = ['machines.html', 'orders.html', 'schedule.html'];
+        if (restrictedForUser.includes(currentPage)) {
+            sessionStorage.setItem('ipss_access_denied', 'true');
+            window.location.href = 'dashboard.html';
+        }
+    }
+}
+
+// --- Dynamic Sidebar Navigation Filter by Role ---
+function updateSidebarForRole() {
+    const currentUser = getCurrentUser();
+    if (!currentUser) return;
+
+    const isUserRole = currentUser.role === 'user';
+    const sidebar = document.querySelector('.sidebar');
+    if (!sidebar) return;
+
+    // Filter restricted links for standard users
+    const restrictedLinks = ['machines.html', 'orders.html', 'schedule.html'];
+    const navItems = sidebar.querySelectorAll('.sidebar-menu li');
+
+    navItems.forEach(li => {
+        const link = li.querySelector('a');
+        if (!link) return;
+        const href = link.getAttribute('href');
+        if (restrictedLinks.includes(href)) {
+            if (isUserRole) {
+                li.style.display = 'none';
+            } else {
+                li.style.display = '';
+            }
+        }
+    });
+
+    // Add or update role badge in sidebar header
+    const sidebarHeader = sidebar.querySelector('.sidebar-header');
+    if (sidebarHeader && !sidebarHeader.querySelector('.sidebar-role-tag')) {
+        const roleTag = document.createElement('div');
+        roleTag.className = 'sidebar-role-tag';
+        roleTag.style.cssText = 'margin-top: 10px; font-size: 11px; padding: 3px 8px; border-radius: 6px; font-weight: 700; width: fit-content;';
+        if (isUserRole) {
+            roleTag.style.backgroundColor = 'rgba(5, 150, 105, 0.25)';
+            roleTag.style.color = '#34d399';
+            roleTag.style.border = '1px solid rgba(52, 211, 153, 0.4)';
+            roleTag.textContent = '👤 OPERATOR PORTAL';
+        } else {
+            roleTag.style.backgroundColor = 'rgba(37, 99, 235, 0.25)';
+            roleTag.style.color = '#60a5fa';
+            roleTag.style.border = '1px solid rgba(96, 165, 250, 0.4)';
+            roleTag.textContent = '🛡️ ADMIN PORTAL';
+        }
+        sidebarHeader.appendChild(roleTag);
     }
 }
 
@@ -163,7 +303,14 @@ document.addEventListener('DOMContentLoaded', function () {
     const currentPage = window.location.pathname.split('/').pop() || 'index.html';
 
     checkAuth(currentPage);
+    updateSidebarForRole();
     updateHeaderProfileInfo();
+
+    // Check for access denied banner/toast notification
+    if (sessionStorage.getItem('ipss_access_denied') === 'true') {
+        sessionStorage.removeItem('ipss_access_denied');
+        showToast('Access Restricted', 'As a User/Operator, you only have access to Dashboard, Products, Reports, and Profile.', 'error', 5500);
+    }
 
     if (currentPage === 'dashboard.html') {
         updateDashboard();
@@ -198,13 +345,25 @@ document.addEventListener('DOMContentLoaded', function () {
 // --- Header Profile Avatar & Name Sync ---
 function updateHeaderProfileInfo() {
     const profile = getProfile();
-    const avatarEl = document.getElementById('headerUserAvatar');
-    const nameEl = document.getElementById('headerUserName');
+    const currentUser = getCurrentUser();
+    const isUser = currentUser && currentUser.role === 'user';
+
+    const avatarEl = document.getElementById('headerUserAvatar') || document.querySelector('.user-avatar');
+    const nameEl = document.getElementById('headerUserName') || document.querySelector('.user-name');
+    const roleEl = document.querySelector('.user-role');
 
     if (profile) {
         const initials = profile.fullName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
         if (avatarEl) avatarEl.textContent = initials;
         if (nameEl) nameEl.textContent = profile.fullName;
+    }
+
+    if (roleEl) {
+        if (isUser) {
+            roleEl.innerHTML = `<span class="user-role-badge role-badge-user">👤 Operator</span>`;
+        } else {
+            roleEl.innerHTML = `<span class="user-role-badge role-badge-admin">🛡️ Admin</span>`;
+        }
     }
 }
 
@@ -223,37 +382,154 @@ function highlightActiveNavLink() {
     });
 }
 
-// --- LOGIN PAGE ---
+// --- LOGIN PAGE DUAL-ROLE SWITCHER & AUTH LOGIC ---
+let activeLoginRole = 'admin';
+
+function switchLoginRole(role) {
+    activeLoginRole = role;
+    const btnAdmin = document.getElementById('btnRoleAdmin');
+    const btnUser = document.getElementById('btnRoleUser');
+    const hiddenRole = document.getElementById('selectedRole');
+    const loginTitle = document.getElementById('loginTitle');
+    const loginSubtitle = document.getElementById('loginSubtitle');
+    const usernameInput = document.getElementById('username');
+    const passwordInput = document.getElementById('password');
+    const demoText = document.getElementById('demoCredText');
+    const submitBtn = document.getElementById('loginSubmitBtn');
+    const permDetails = document.getElementById('permDetailsText');
+    const errorBanner = document.getElementById('loginErrorMessage');
+
+    if (errorBanner) errorBanner.style.display = 'none';
+    if (hiddenRole) hiddenRole.value = role;
+
+    if (role === 'admin') {
+        if (btnAdmin) btnAdmin.className = 'role-tab active';
+        if (btnUser) btnUser.className = 'role-tab';
+        if (loginTitle) loginTitle.textContent = 'Admin Sign In';
+        if (loginSubtitle) loginSubtitle.textContent = 'Full access to all modules';
+        if (usernameInput) { usernameInput.value = 'admin'; usernameInput.classList.remove('user-mode'); }
+        if (passwordInput) { passwordInput.value = 'admin123'; passwordInput.classList.remove('user-mode'); }
+        if (demoText) demoText.innerHTML = '⚡ Demo: <strong>admin</strong> / <strong>admin123</strong> — click to fill';
+        if (submitBtn) { submitBtn.className = 'btn-sign-in'; submitBtn.textContent = 'Sign In →'; }
+        if (permDetails) permDetails.textContent = 'Dashboard • Products • Machines • Orders • Schedule • Reports • Profile';
+    } else {
+        if (btnAdmin) btnAdmin.className = 'role-tab';
+        if (btnUser) btnUser.className = 'role-tab active user-active';
+        if (loginTitle) loginTitle.textContent = 'Operator Sign In';
+        if (loginSubtitle) loginSubtitle.textContent = 'Access Dashboard, Products & Reports';
+        if (usernameInput) { usernameInput.value = 'user'; usernameInput.classList.add('user-mode'); }
+        if (passwordInput) { passwordInput.value = 'user123'; passwordInput.classList.add('user-mode'); }
+        if (demoText) demoText.innerHTML = '⚡ Demo: <strong>user</strong> / <strong>user123</strong> — click to fill';
+        if (submitBtn) { submitBtn.className = 'btn-sign-in user-mode'; submitBtn.textContent = 'Sign In →'; }
+        if (permDetails) permDetails.textContent = 'Dashboard • Products (View Only) • Reports • Profile';
+    }
+}
+
+function fillDemoCredentials() {
+    const usernameInput = document.getElementById('username');
+    const passwordInput = document.getElementById('password');
+
+    if (activeLoginRole === 'admin') {
+        if (usernameInput) usernameInput.value = 'admin';
+        if (passwordInput) passwordInput.value = 'admin123';
+    } else {
+        if (usernameInput) usernameInput.value = 'user';
+        if (passwordInput) passwordInput.value = 'user123';
+    }
+
+    const errorBanner = document.getElementById('loginErrorMessage');
+    if (errorBanner) errorBanner.style.display = 'none';
+}
+
+function togglePasswordVisibility() {
+    const passwordInput = document.getElementById('password');
+    const toggleBtn = document.getElementById('pwdToggleBtn');
+    if (!passwordInput) return;
+
+    if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        if (toggleBtn) toggleBtn.textContent = '🙈';
+    } else {
+        passwordInput.type = 'password';
+        if (toggleBtn) toggleBtn.textContent = '👁️';
+    }
+}
+
+function handleForgotPassword(event) {
+    if (event) event.preventDefault();
+    alert(`🔑 Demo Account Credentials:\n\n• Admin: admin / admin123\n• User: user / user123\n\nUse the top buttons to switch roles directly.`);
+}
+
+function handleFormSubmit(event) {
+    if (event) event.preventDefault();
+
+    const usernameInput = document.getElementById('username');
+    const passwordInput = document.getElementById('password');
+    const errorMsgDiv = document.getElementById('loginErrorMessage');
+
+    const username = usernameInput ? usernameInput.value.trim().toLowerCase() : '';
+    const password = passwordInput ? passwordInput.value.trim() : '';
+
+    // Validate Admin credentials
+    const isAdmin = (username === 'admin' || username === 'admin@ipss.com' || username === 'admin@itps.com') && password === 'admin123';
+
+    // Validate User credentials
+    const isUser = (username === 'user' || username === 'user@ipss.com' || username === 'operator' || username === 'staff') && (password === 'user123' || password === 'operator123');
+
+    const roleFromInput = document.getElementById('selectedRole') ? document.getElementById('selectedRole').value : activeLoginRole;
+
+    if (isAdmin || (roleFromInput === 'admin' && username === 'admin' && password === 'admin123')) {
+        const adminUserObj = {
+            username: 'admin',
+            role: 'admin',
+            fullName: 'Admin User',
+            designation: 'Production Manager'
+        };
+        localStorage.setItem('ipss_user', JSON.stringify(adminUserObj));
+        localStorage.setItem('itps_user', JSON.stringify(adminUserObj));
+        window.location.href = 'dashboard.html';
+        return false;
+    } else if (isUser || (roleFromInput === 'user' && (username === 'user' || username === 'operator') && (password === 'user123' || password === 'operator123'))) {
+        const userObj = {
+            username: 'user',
+            role: 'user',
+            fullName: 'Staff Operator',
+            designation: 'Machine & Line Operator'
+        };
+        localStorage.setItem('ipss_user', JSON.stringify(userObj));
+        localStorage.setItem('itps_user', JSON.stringify(userObj));
+        window.location.href = 'dashboard.html';
+        return false;
+    } else if (username !== '' && password !== '') {
+        const fallbackRole = roleFromInput === 'user' ? 'user' : 'admin';
+        const userObj = {
+            username: username,
+            role: fallbackRole,
+            fullName: fallbackRole === 'user' ? 'Staff Operator' : 'Admin User',
+            designation: fallbackRole === 'user' ? 'Machine & Line Operator' : 'Production Manager'
+        };
+        localStorage.setItem('ipss_user', JSON.stringify(userObj));
+        localStorage.setItem('itps_user', JSON.stringify(userObj));
+        window.location.href = 'dashboard.html';
+        return false;
+    } else {
+        if (errorMsgDiv) {
+            const hint = activeLoginRole === 'admin' ? 'admin / admin123' : 'user / user123';
+            errorMsgDiv.textContent = `❌ Invalid credentials for ${activeLoginRole === 'admin' ? 'Admin' : 'Operator'}! Try: ${hint}`;
+            errorMsgDiv.style.display = 'block';
+        } else {
+            alert('Invalid credentials!');
+        }
+        return false;
+    }
+}
+
 function setupLoginForm() {
     const loginForm = document.getElementById('loginForm');
     if (!loginForm) return;
 
     loginForm.addEventListener('submit', function (event) {
-        event.preventDefault();
-
-        const usernameInput = document.getElementById('username') || document.getElementById('email');
-        const passwordInput = document.getElementById('password');
-
-        const username = usernameInput ? usernameInput.value.trim() : '';
-        const password = passwordInput ? passwordInput.value.trim() : '';
-        const errorMsgDiv = document.getElementById('loginErrorMessage');
-
-        if ((username === 'admin' || username === 'admin@ipss.com' || username === 'admin@itps.com') && password === 'admin123') {
-            localStorage.setItem('ipss_user', JSON.stringify({ username: username, role: 'Production Manager' }));
-            localStorage.setItem('itps_user', JSON.stringify({ username: username, role: 'Production Manager' }));
-            window.location.href = 'dashboard.html';
-        } else if (username !== '' && password !== '') {
-            localStorage.setItem('ipss_user', JSON.stringify({ username: username, role: 'Production Manager' }));
-            localStorage.setItem('itps_user', JSON.stringify({ username: username, role: 'Production Manager' }));
-            window.location.href = 'dashboard.html';
-        } else {
-            if (errorMsgDiv) {
-                errorMsgDiv.textContent = 'Invalid credentials! Try: admin / admin123';
-                errorMsgDiv.style.display = 'block';
-            } else {
-                alert('Invalid credentials! Try: admin / admin123');
-            }
-        }
+        handleFormSubmit(event);
     });
 }
 
@@ -278,6 +554,11 @@ function loadProfile() {
     if (document.getElementById('infoDob')) document.getElementById('infoDob').textContent = profile.dob;
     if (document.getElementById('infoGender')) document.getElementById('infoGender').textContent = profile.gender;
     if (document.getElementById('infoAddress')) document.getElementById('infoAddress').textContent = profile.address;
+
+    // Professional Info Cards
+    if (document.getElementById('infoEmpId')) document.getElementById('infoEmpId').textContent = profile.employeeId || 'IPSS-001';
+    if (document.getElementById('infoDepartment')) document.getElementById('infoDepartment').textContent = profile.department || 'Operations';
+    if (document.getElementById('infoDesignation')) document.getElementById('infoDesignation').textContent = profile.designation || 'Staff';
 
     // Populate Edit Form Inputs
     if (document.getElementById('editFullName')) document.getElementById('editFullName').value = profile.fullName;
@@ -502,6 +783,9 @@ function renderProductsTable(filterText = '') {
         let productVolume = 0;
         matchingOrders.forEach(o => { productVolume += parseInt(o.quantity) || 0; });
 
+        const currentUser = getCurrentUser();
+        const isUserRole = currentUser && currentUser.role === 'user';
+
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>#${index + 1}</td>
@@ -512,8 +796,11 @@ function renderProductsTable(filterText = '') {
             <td><strong>${linkedOrdersCount}</strong> active order(s)</td>
             <td><strong>${productVolume}</strong> units scheduled</td>
             <td class="action-buttons">
-                <button class="btn btn-secondary btn-sm" onclick="editProduct(${product.id})">Edit</button>
-                <button class="btn btn-danger btn-sm" onclick="deleteProduct(${product.id})">Delete</button>
+                ${isUserRole ? 
+                    '<span class="view-only-tag">👁️ View Only</span>' : 
+                    `<button class="btn btn-secondary btn-sm" onclick="editProduct(${product.id})">Edit</button>
+                     <button class="btn btn-danger btn-sm" onclick="deleteProduct(${product.id})">Delete</button>`
+                }
             </td>
         `;
         tableBody.appendChild(tr);
@@ -533,6 +820,15 @@ function setupProductForm() {
     const form = document.getElementById('productForm');
     const cancelBtn = document.getElementById('cancelProductEditBtn');
     if (!form) return;
+
+    const currentUser = getCurrentUser();
+    if (currentUser && currentUser.role === 'user') {
+        const formCard = form.closest('.card');
+        if (formCard) {
+            formCard.style.display = 'none'; // Hide product creation form for standard users
+        }
+        return;
+    }
 
     form.addEventListener('submit', function (event) {
         event.preventDefault();
@@ -574,6 +870,12 @@ function setupProductForm() {
 }
 
 function editProduct(id) {
+    const currentUser = getCurrentUser();
+    if (currentUser && currentUser.role === 'user') {
+        showToast('Permission Denied', 'Standard users cannot modify master products.', 'error');
+        return;
+    }
+
     const products = getData('itps_products');
     const product = products.find(p => p.id == id);
     if (product) {
@@ -590,6 +892,12 @@ function editProduct(id) {
 }
 
 function deleteProduct(id) {
+    const currentUser = getCurrentUser();
+    if (currentUser && currentUser.role === 'user') {
+        showToast('Permission Denied', 'Standard users cannot delete master products.', 'error');
+        return;
+    }
+
     if (confirm('Are you sure you want to delete this master product?')) {
         let products = getData('itps_products');
         const prodObj = products.find(p => p.id == id);

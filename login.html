@@ -1,62 +1,122 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sign In - IPSS</title>
+    <link rel="icon" type="image/svg+xml" href="images/favicon.svg">
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/login.css">
 </head>
-
 <body class="login-body">
 
-    <!-- Header with Back to Home Link -->
-    <header class="landing-header">
-        <a href="index.html" class="logo">
-            <div class="logo-icon">&#9994;</div>
-            IPSS
-        </a>
-        <a href="index.html" class="btn-signin">&larr; Back to Home</a>
-    </header>
+    <!-- Split Layout: Left Brand Panel + Right Form Panel -->
+    <div class="login-split">
 
-    <!-- Login Container -->
-    <div class="login-wrapper">
-        <div class="login-card">
-            <h2>Welcome Back</h2>
-            <p>Please enter your credentials to sign in.</p>
-
-            <div id="loginErrorMessage" class="error-banner"
-                style="display: none; background-color: #fee2e2; color: #b91c1c; padding: 10px; border-radius: 6px; font-size: 13px; margin-bottom: 15px; text-align: center;">
+        <!-- LEFT: Brand Sidebar (matches dashboard sidebar exactly) -->
+        <aside class="login-brand-panel">
+            <div class="brand-logo">
+                <div class="brand-icon">&#9994;</div>
+                <div>
+                    <div class="brand-name">IPSS</div>
+                    <div class="brand-sub">Scheduling System</div>
+                </div>
             </div>
 
-            <form id="loginForm">
-                <div class="form-group">
-                    <label for="username">Username</label>
-                    <input type="text" id="username" class="form-control" placeholder="admin" value="admin" required>
+            <div class="brand-tagline">
+                <h2>Intelligent Product<br>Scheduling System</h2>
+                <p>Optimize your factory floor with smart scheduling and real-time machine monitoring.</p>
+            </div>
+
+            <div class="brand-features">
+                <div class="brand-feature-item">
+                    <span class="feat-icon">📊</span>
+                    <span>Live Dashboard & KPIs</span>
+                </div>
+                <div class="brand-feature-item">
+                    <span class="feat-icon">📅</span>
+                    <span>Automated Scheduling Engine</span>
+                </div>
+                <div class="brand-feature-item">
+                    <span class="feat-icon">🏭</span>
+                    <span>Machine Status Monitoring</span>
+                </div>
+                <div class="brand-feature-item">
+                    <span class="feat-icon">📈</span>
+                    <span>Production Analytics Reports</span>
+                </div>
+            </div>
+
+            <a href="index.html" class="brand-back-link">&larr; Back to Home</a>
+        </aside>
+
+        <!-- RIGHT: Login Form Panel (matches dashboard header/card style) -->
+        <main class="login-form-panel">
+
+            <div class="login-form-box">
+
+                <!-- Role Switcher Tab Bar -->
+                <div class="role-switcher-bar">
+                    <button type="button" class="role-tab active" id="btnRoleAdmin" onclick="switchLoginRole('admin')">
+                        🛡️ Admin
+                    </button>
+                    <button type="button" class="role-tab" id="btnRoleUser" onclick="switchLoginRole('user')">
+                        👤 Operator
+                    </button>
                 </div>
 
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" class="form-control" placeholder="••••••••" value="admin123"
-                        required>
+                <!-- Form Header -->
+                <div class="form-box-header">
+                    <h1 id="loginTitle">Admin Sign In</h1>
+                    <p id="loginSubtitle">Full access to all modules</p>
                 </div>
 
-                <div class="form-options">
-                    <label class="remember-me">
-                        <input type="checkbox" name="remember" checked> Remember me
-                    </label>
-                    <a href="#" class="forgot-password">Forgot password?</a>
+                <!-- Error Banner -->
+                <div id="loginErrorMessage" class="login-error" style="display:none;"></div>
+
+                <!-- Login Form -->
+                <form id="loginForm" onsubmit="return handleFormSubmit(event)">
+                    <input type="hidden" id="selectedRole" value="admin">
+
+                    <div class="field-group">
+                        <label for="username">Username</label>
+                        <input type="text" id="username" class="field-input" placeholder="admin" value="admin" required autocomplete="username">
+                    </div>
+
+                    <div class="field-group">
+                        <label for="password">Password</label>
+                        <div class="password-wrap">
+                            <input type="password" id="password" class="field-input" placeholder="••••••••" value="admin123" required autocomplete="current-password">
+                            <button type="button" class="pwd-toggle" id="pwdToggleBtn" onclick="togglePasswordVisibility()">👁️</button>
+                        </div>
+                    </div>
+
+                    <div class="form-meta">
+                        <label class="remember-check">
+                            <input type="checkbox" id="rememberMe" checked> Remember me
+                        </label>
+                        <a href="javascript:void(0)" class="forgot-link" onclick="handleForgotPassword(event)">Forgot password?</a>
+                    </div>
+
+                    <button type="submit" id="loginSubmitBtn" class="btn-sign-in">
+                        Sign In &rarr;
+                    </button>
+                </form>
+
+                <!-- Quick demo hint -->
+                <div class="demo-hint" onclick="fillDemoCredentials()">
+                    <span id="demoCredText">⚡ Demo: <strong>admin</strong> / <strong>admin123</strong> — click to fill</span>
                 </div>
 
-                <button type="submit" class="btn-primary btn-full">Sign In to Dashboard</button>
-            </form>
+                <!-- Access summary -->
+                <div class="access-badge" id="rolePermissionsHint">
+                    <span id="permDetailsText">Dashboard • Products • Machines • Orders • Schedule • Reports • Profile</span>
+                </div>
 
-
-        </div>
+            </div>
+        </main>
     </div>
 
     <script src="js/script.js"></script>
 </body>
-
 </html>

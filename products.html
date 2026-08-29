@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>IPSS - Products Management</title>
+    <link rel="icon" type="image/svg+xml" href="images/favicon.svg">
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -95,6 +96,56 @@
                         <span class="search-icon">🔍</span>
                         <input type="text" id="productSearchInput" placeholder="Search Master Products by name or category...">
                     </div>
+                </div>
+
+                <!-- Add / Edit Product Master Form Card (Admin Only) -->
+                <div class="card" id="productFormCard">
+                    <div class="card-header">
+                        <h2 class="card-title" id="productFormTitle">Add New Master Product</h2>
+                    </div>
+
+                    <form id="productForm">
+                        <input type="hidden" id="productId">
+
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="productName">Product Name</label>
+                                <input type="text" id="productName" class="form-control" placeholder="e.g. PCB Controller Board" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="productCategory">Category</label>
+                                <select id="productCategory" class="form-control" required>
+                                    <option value="Electronics">Electronics</option>
+                                    <option value="Peripherals">Peripherals</option>
+                                    <option value="Mechanical">Mechanical</option>
+                                    <option value="Control Units">Control Units</option>
+                                    <option value="General Assembly">General Assembly</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="processingTime">Processing Time (hrs/unit)</label>
+                                <input type="number" id="processingTime" class="form-control" placeholder="e.g. 2.0" step="0.1" min="0.1" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="assignedMachineSelect">Preferred Machine Line</label>
+                                <select id="assignedMachineSelect" class="form-control">
+                                    <option value="All Machines">All Machines (Flexible)</option>
+                                    <option value="M-01">Line M-01 (High Speed)</option>
+                                    <option value="M-02">Line M-02 (Precision)</option>
+                                    <option value="M-03">Line M-03 (Heavy Duty)</option>
+                                    <option value="M-04">Line M-04 (Custom)</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <button type="submit" id="formSubmitBtn" class="btn btn-primary">Add Product Master</button>
+                                <button type="button" id="cancelProductEditBtn" class="btn btn-secondary" style="display: none; margin-left: 8px;">Cancel</button>
+                            </div>
+                        </div>
+                    </form>
                 </div>
 
                 <!-- Products Table Card -->

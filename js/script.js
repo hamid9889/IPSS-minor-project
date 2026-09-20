@@ -1,27 +1,72 @@
 /* 
-
    IPSS - Intelligent Product Scheduling System
-  
+   Full-Stack Client-to-Backend Integration
 */
 
-// --- Helper Functions for LocalStorage ---
-function getData(key) {
-    let ipssKey = key.replace('itps_', 'ipss_');
-    let legacyKey = key.replace('ipss_', 'itps_');
-    let data = localStorage.getItem(ipssKey) || localStorage.getItem(legacyKey) || localStorage.getItem(key);
-    return JSON.parse(data) || [];
+// --- API Configuration ---
+const API_BASE = window.location.origin.includes(':8000') ? '' : 'http://localhost:8000';
+
+function getAuthToken() {
+    return localStorage.getItem('ipss_token') || '';
 }
 
-function saveData(key, data) {
-    let ipssKey = key.replace('itps_', 'ipss_');
-    let legacyKey = key.replace('ipss_', 'itps_');
-    localStorage.setItem(ipssKey, JSON.stringify(data));
-    localStorage.setItem(legacyKey, JSON.stringify(data));
+function getCurrentUser() {
+    const raw = localStorage.getItem('ipss_user');
+    if (!raw) return null;
+    try {
+        return JSON.parse(raw);
+    } catch (e) {
+        return null;
+    }
+}
+
+async function apiFetch(endpoint, options = {}) {
+    const token = getAuthToken();
+    const headers = {
+        'Content-Type': 'application/json',
+        ...(options.headers || {})
+    };
+
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE}${endpoint}`, {
+            ...options,
+            headers
+        });
+
+        if (response.status === 401) {
+            const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+            if (currentPage !== 'login.html' && currentPage !== 'index.html') {
+                localStorage.removeItem('ipss_token');
+                localStorage.removeItem('ipss_user');
+                window.location.href = 'login.html';
+            }
+            throw new Error('Unauthorized');
+        }
+
+        if (response.status === 403) {
+            showToast('Permission Denied', 'You do not have administrative privileges for this operation.', 'error');
+            throw new Error('Forbidden');
+        }
+
+        if (!response.ok) {
+            const errData = await response.json().catch(() => ({}));
+            throw new Error(errData.detail || `Request failed with status ${response.status}`);
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error(`API Error on ${endpoint}:`, error.message);
+        throw error;
+    }
 }
 
 // --- Theme (Dark Mode) Manager ---
 function initTheme() {
-    const savedTheme = localStorage.getItem('ipss_theme') || localStorage.getItem('itps_theme');
+    const savedTheme = localStorage.getItem('ipss_theme');
     if (savedTheme === 'dark') {
         document.body.classList.add('dark-mode');
         updateThemeToggleButton(true);
@@ -31,7 +76,6 @@ function initTheme() {
 function toggleDarkMode() {
     const isDark = document.body.classList.toggle('dark-mode');
     localStorage.setItem('ipss_theme', isDark ? 'dark' : 'light');
-    localStorage.setItem('itps_theme', isDark ? 'dark' : 'light');
     updateThemeToggleButton(isDark);
 }
 
@@ -48,141 +92,6 @@ function toggleMobileSidebar() {
     if (sidebar) {
         sidebar.classList.toggle('open');
     }
-}
-
-// --- Initialize Default Storage Data ---
-function initDefaultData() {
-    if (!localStorage.getItem('ipss_products') && !localStorage.getItem('itps_products')) {
-        const defaultProducts = [
-            { id: 1, productName: 'Laptop Assembly', category: 'Electronics', processingTime: 2.0, preferredLine: 'M-01' },
-            { id: 2, productName: 'Mouse Housing', category: 'Peripherals', processingTime: 1.5, preferredLine: 'M-02' },
-            { id: 3, productName: 'Motor Shaft', category: 'Mechanical', processingTime: 3.0, preferredLine: 'M-03' },
-            { id: 4, productName: 'Control Panel Unit', category: 'Control Units', processingTime: 4.0, preferredLine: 'M-04' }
-        ];
-        saveData('ipss_products', defaultProducts);
-    }
-
-    if (!localStorage.getItem('ipss_machines') && !localStorage.getItem('itps_machines')) {
-        const defaultMachines = [
-            { id: 1, machineName: 'M-01', capacity: 120, status: 'Available' },
-            { id: 2, machineName: 'M-02', capacity: 80, status: 'Working' },
-            { id: 3, machineName: 'M-03', capacity: 200, status: 'Available' },
-            { id: 4, machineName: 'M-04', capacity: 60, status: 'Maintenance' }
-        ];
-        saveData('ipss_machines', defaultMachines);
-    }
-
-    if (!localStorage.getItem('ipss_orders') && !localStorage.getItem('itps_orders')) {
-        const defaultOrders = [
-            { id: 1, orderId: 'ORD-101', productName: 'Laptop Assembly', quantity: 50, priority: 'High', deadline: '2026-08-20', status: 'Pending' },
-            { id: 2, orderId: 'ORD-102', productName: 'Mouse Housing', quantity: 100, priority: 'Medium', deadline: '2026-08-22', status: 'Pending' },
-            { id: 3, orderId: 'ORD-103', productName: 'Motor Shaft', quantity: 30, priority: 'Low', deadline: '2026-08-25', status: 'Completed' },
-            { id: 4, orderId: 'ORD-104', productName: 'Control Panel Unit', quantity: 20, priority: 'High', deadline: '2026-08-18', status: 'Pending' }
-        ];
-        saveData('ipss_orders', defaultOrders);
-    }
-
-    if (!localStorage.getItem('ipss_schedule') && !localStorage.getItem('itps_schedule')) {
-        const defaultSchedule = [
-            { id: 1, machineName: 'M-01', orderId: 'ORD-101', productName: 'Laptop Assembly', startTime: '09:00', endTime: '11:00', priority: 'High', status: 'Scheduled' },
-            { id: 2, machineName: 'M-02', orderId: 'ORD-102', productName: 'Mouse Housing', startTime: '09:00', endTime: '10:30', priority: 'Medium', status: 'Scheduled' }
-        ];
-        saveData('ipss_schedule', defaultSchedule);
-    }
-
-    if (!localStorage.getItem('ipss_activities') && !localStorage.getItem('itps_activities')) {
-        const defaultActivities = [
-            { text: 'Order #ORD-104 created', time: '10 mins ago', type: 'info' },
-            { text: 'Machine M-02 changed to Working', time: '25 mins ago', type: 'warning' },
-            { text: 'Schedule generated successfully', time: '1 hour ago', type: 'success' }
-        ];
-        saveData('ipss_activities', defaultActivities);
-    }
-
-    initDefaultProfile();
-}
-
-// --- User Profiles & RBAC State Management ---
-function getCurrentUser() {
-    const raw = localStorage.getItem('ipss_user') || localStorage.getItem('itps_user');
-    if (!raw) return null;
-    try {
-        return JSON.parse(raw);
-    } catch (e) {
-        return null;
-    }
-}
-
-function initDefaultProfile() {
-    // Admin Profile Initialization
-    let adminStored = localStorage.getItem('ipss_profile_admin') || localStorage.getItem('ipss_profile') || localStorage.getItem('itps_profile');
-    let adminProfile = adminStored ? JSON.parse(adminStored) : {};
-
-    if (!adminProfile.phone || adminProfile.phone === '+1 (555) 234-5678') adminProfile.phone = '+91 9876543210';
-    if (!adminProfile.dob || adminProfile.dob === '1990-05-15') adminProfile.dob = '1995-04-15';
-    if (!adminProfile.address || adminProfile.address === '123 Industrial Parkway, Suite 400' || adminProfile.address === '123 Lucknow') adminProfile.address = 'Industrial Area Unit 1, Lucknow';
-    if (!adminProfile.fullName) adminProfile.fullName = 'Admin User';
-    if (!adminProfile.username) adminProfile.username = 'admin';
-    if (!adminProfile.email) adminProfile.email = 'admin@ipss.com';
-    if (!adminProfile.employeeId) adminProfile.employeeId = 'IPSS-ADM-01';
-    if (!adminProfile.department) adminProfile.department = 'Production & Plant Management';
-    if (!adminProfile.designation) adminProfile.designation = 'Production Manager';
-    if (!adminProfile.role) adminProfile.role = 'admin';
-    if (!adminProfile.gender) adminProfile.gender = 'Male';
-
-    saveData('ipss_profile_admin', adminProfile);
-
-    // Operator / Standard User Profile Initialization
-    let userStored = localStorage.getItem('ipss_profile_user');
-    let userProfile = userStored ? JSON.parse(userStored) : {};
-
-    if (!userProfile.phone) userProfile.phone = '+91 9123456789';
-    if (!userProfile.dob) userProfile.dob = '1998-08-22';
-    if (!userProfile.address) userProfile.address = 'Assembly Section B, Floor 2, Lucknow';
-    if (!userProfile.fullName) userProfile.fullName = 'Staff Operator';
-    if (!userProfile.username) userProfile.username = 'user';
-    if (!userProfile.email) userProfile.email = 'user@ipss.com';
-    if (!userProfile.employeeId) userProfile.employeeId = 'IPSS-USR-104';
-    if (!userProfile.department) userProfile.department = 'Shopfloor Operations';
-    if (!userProfile.designation) userProfile.designation = 'Machine & Line Operator';
-    if (!userProfile.role) userProfile.role = 'user';
-    if (!userProfile.gender) userProfile.gender = 'Male';
-
-    saveData('ipss_profile_user', userProfile);
-
-    // Fallback sync for legacy keys
-    saveData('ipss_profile', adminProfile);
-}
-
-function getProfile() {
-    initDefaultProfile();
-    const currentUser = getCurrentUser();
-    const isUser = currentUser && currentUser.role === 'user';
-    const profileKey = isUser ? 'ipss_profile_user' : 'ipss_profile_admin';
-    let data = localStorage.getItem(profileKey);
-    return data ? JSON.parse(data) : (isUser ? getData('ipss_profile_user') : getData('ipss_profile_admin'));
-}
-
-function saveProfileData(profile) {
-    const currentUser = getCurrentUser();
-    const isUser = currentUser && currentUser.role === 'user';
-    const profileKey = isUser ? 'ipss_profile_user' : 'ipss_profile_admin';
-    saveData(profileKey, profile);
-
-    // Update current active user session name & designation if changed
-    if (currentUser) {
-        currentUser.fullName = profile.fullName;
-        currentUser.designation = profile.designation;
-        localStorage.setItem('ipss_user', JSON.stringify(currentUser));
-        localStorage.setItem('itps_user', JSON.stringify(currentUser));
-    }
-}
-
-function addRecentActivity(text, type = 'info') {
-    let activities = getData('ipss_activities');
-    activities.unshift({ text: text, time: 'Just now', type: type });
-    if (activities.length > 8) activities = activities.slice(0, 8);
-    saveData('ipss_activities', activities);
 }
 
 // --- Toast Notification Helper ---
@@ -219,8 +128,8 @@ function showToast(title, desc, type = 'info', duration = 4500) {
 
 // --- Logout Action ---
 function logout() {
+    localStorage.removeItem('ipss_token');
     localStorage.removeItem('ipss_user');
-    localStorage.removeItem('itps_user');
     window.location.href = 'index.html';
 }
 
@@ -229,18 +138,18 @@ function checkAuth(currentPage) {
     const publicPages = ['index.html', 'login.html', ''];
     const isPublic = publicPages.includes(currentPage);
     const currentUser = getCurrentUser();
-    const isLoggedIn = currentUser !== null;
+    const token = getAuthToken();
+    const isLoggedIn = currentUser !== null && token !== '';
 
     if (!isPublic && !isLoggedIn) {
         window.location.href = 'login.html';
         return;
     }
 
-    // Role Permission Route Protection
-    if (isLoggedIn && currentUser.role === 'user') {
-        // User role is restricted to: Dashboard, Products (view), Reports, Profile
-        const restrictedForUser = ['machines.html', 'orders.html', 'schedule.html'];
-        if (restrictedForUser.includes(currentPage)) {
+    // Role Permission Route Protection for Operator
+    if (isLoggedIn && currentUser.role.toUpperCase() === 'OPERATOR') {
+        const restrictedForOperator = ['machines.html', 'orders.html', 'schedule.html'];
+        if (restrictedForOperator.includes(currentPage)) {
             sessionStorage.setItem('ipss_access_denied', 'true');
             window.location.href = 'dashboard.html';
         }
@@ -252,11 +161,11 @@ function updateSidebarForRole() {
     const currentUser = getCurrentUser();
     if (!currentUser) return;
 
-    const isUserRole = currentUser.role === 'user';
+    const isOperator = currentUser.role.toUpperCase() === 'OPERATOR';
     const sidebar = document.querySelector('.sidebar');
     if (!sidebar) return;
 
-    // Filter restricted links for standard users
+    // Filter restricted links for standard operators
     const restrictedLinks = ['machines.html', 'orders.html', 'schedule.html'];
     const navItems = sidebar.querySelectorAll('.sidebar-menu li');
 
@@ -265,21 +174,17 @@ function updateSidebarForRole() {
         if (!link) return;
         const href = link.getAttribute('href');
         if (restrictedLinks.includes(href)) {
-            if (isUserRole) {
-                li.style.display = 'none';
-            } else {
-                li.style.display = '';
-            }
+            li.style.display = isOperator ? 'none' : '';
         }
     });
 
-    // Add or update role badge in sidebar header
+    // Add role badge in sidebar header
     const sidebarHeader = sidebar.querySelector('.sidebar-header');
     if (sidebarHeader && !sidebarHeader.querySelector('.sidebar-role-tag')) {
         const roleTag = document.createElement('div');
         roleTag.className = 'sidebar-role-tag';
         roleTag.style.cssText = 'margin-top: 10px; font-size: 11px; padding: 3px 8px; border-radius: 6px; font-weight: 700; width: fit-content;';
-        if (isUserRole) {
+        if (isOperator) {
             roleTag.style.backgroundColor = 'rgba(5, 150, 105, 0.25)';
             roleTag.style.color = '#34d399';
             roleTag.style.border = '1px solid rgba(52, 211, 153, 0.4)';
@@ -294,9 +199,49 @@ function updateSidebarForRole() {
     }
 }
 
+// --- Header Profile Avatar & Name Sync ---
+function updateHeaderProfileInfo() {
+    const currentUser = getCurrentUser();
+    if (!currentUser) return;
+
+    const isOperator = currentUser.role.toUpperCase() === 'OPERATOR';
+    const avatarEl = document.getElementById('headerUserAvatar') || document.querySelector('.user-avatar');
+    const nameEl = document.getElementById('headerUserName') || document.querySelector('.user-name');
+    const roleEl = document.querySelector('.user-role');
+
+    if (currentUser.fullName || currentUser.full_name) {
+        const name = currentUser.fullName || currentUser.full_name;
+        const initials = name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+        if (avatarEl) avatarEl.textContent = initials;
+        if (nameEl) nameEl.textContent = name;
+    }
+
+    if (roleEl) {
+        if (isOperator) {
+            roleEl.innerHTML = `<span class="user-role-badge role-badge-user">👤 Operator</span>`;
+        } else {
+            roleEl.innerHTML = `<span class="user-role-badge role-badge-admin">🛡️ Admin</span>`;
+        }
+    }
+}
+
+// --- Sidebar Active Navigation Highlight ---
+function highlightActiveNavLink() {
+    const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+    const navLinks = document.querySelectorAll('.sidebar-menu a');
+
+    navLinks.forEach(link => {
+        const linkPage = link.getAttribute('href');
+        if (linkPage === currentPage) {
+            link.classList.add('active');
+        } else {
+            link.classList.remove('active');
+        }
+    });
+}
+
 // --- DOM Content Loaded Initialization ---
 document.addEventListener('DOMContentLoaded', function () {
-    initDefaultData();
     initTheme();
     highlightActiveNavLink();
 
@@ -306,10 +251,9 @@ document.addEventListener('DOMContentLoaded', function () {
     updateSidebarForRole();
     updateHeaderProfileInfo();
 
-    // Check for access denied banner/toast notification
     if (sessionStorage.getItem('ipss_access_denied') === 'true') {
         sessionStorage.removeItem('ipss_access_denied');
-        showToast('Access Restricted', 'As a User/Operator, you only have access to Dashboard, Products, Reports, and Profile.', 'error', 5500);
+        showToast('Access Restricted', 'As an Operator, you only have access to Dashboard, Products, Reports, and Profile.', 'error', 5500);
     }
 
     if (currentPage === 'dashboard.html') {
@@ -342,47 +286,10 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 });
 
-// --- Header Profile Avatar & Name Sync ---
-function updateHeaderProfileInfo() {
-    const profile = getProfile();
-    const currentUser = getCurrentUser();
-    const isUser = currentUser && currentUser.role === 'user';
 
-    const avatarEl = document.getElementById('headerUserAvatar') || document.querySelector('.user-avatar');
-    const nameEl = document.getElementById('headerUserName') || document.querySelector('.user-name');
-    const roleEl = document.querySelector('.user-role');
-
-    if (profile) {
-        const initials = profile.fullName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
-        if (avatarEl) avatarEl.textContent = initials;
-        if (nameEl) nameEl.textContent = profile.fullName;
-    }
-
-    if (roleEl) {
-        if (isUser) {
-            roleEl.innerHTML = `<span class="user-role-badge role-badge-user">👤 Operator</span>`;
-        } else {
-            roleEl.innerHTML = `<span class="user-role-badge role-badge-admin">🛡️ Admin</span>`;
-        }
-    }
-}
-
-// --- Sidebar Active Navigation Highlight ---
-function highlightActiveNavLink() {
-    const currentPage = window.location.pathname.split('/').pop() || 'index.html';
-    const navLinks = document.querySelectorAll('.sidebar-menu a');
-
-    navLinks.forEach(link => {
-        const linkPage = link.getAttribute('href');
-        if (linkPage === currentPage) {
-            link.classList.add('active');
-        } else {
-            link.classList.remove('active');
-        }
-    });
-}
-
-// --- LOGIN PAGE DUAL-ROLE SWITCHER & AUTH LOGIC ---
+// ==========================================
+// LOGIN PAGE LOGIC
+// ==========================================
 let activeLoginRole = 'admin';
 
 function switchLoginRole(role) {
@@ -457,70 +364,58 @@ function togglePasswordVisibility() {
 
 function handleForgotPassword(event) {
     if (event) event.preventDefault();
-    alert(`🔑 Demo Account Credentials:\n\n• Admin: admin / admin123\n• User: user / user123\n\nUse the top buttons to switch roles directly.`);
+    alert(`🔑 Demo Account Credentials:\n\n• Admin: admin / admin123\n• Operator: user / user123\n\nUse the role switcher tabs above to autofill credentials.`);
 }
 
-function handleFormSubmit(event) {
+async function handleFormSubmit(event) {
     if (event) event.preventDefault();
 
     const usernameInput = document.getElementById('username');
     const passwordInput = document.getElementById('password');
     const errorMsgDiv = document.getElementById('loginErrorMessage');
+    const submitBtn = document.getElementById('loginSubmitBtn');
 
-    const username = usernameInput ? usernameInput.value.trim().toLowerCase() : '';
+    const username = usernameInput ? usernameInput.value.trim() : '';
     const password = passwordInput ? passwordInput.value.trim() : '';
 
-    // Validate Admin credentials
-    const isAdmin = (username === 'admin' || username === 'admin@ipss.com' || username === 'admin@itps.com') && password === 'admin123';
+    if (!username || !password) {
+        if (errorMsgDiv) {
+            errorMsgDiv.textContent = 'Please enter both username and password.';
+            errorMsgDiv.style.display = 'block';
+        }
+        return false;
+    }
 
-    // Validate User credentials
-    const isUser = (username === 'user' || username === 'user@ipss.com' || username === 'operator' || username === 'staff') && (password === 'user123' || password === 'operator123');
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Authenticating...';
+    }
 
-    const roleFromInput = document.getElementById('selectedRole') ? document.getElementById('selectedRole').value : activeLoginRole;
+    try {
+        const data = await apiFetch('/api/auth/login', {
+            method: 'POST',
+            body: JSON.stringify({ username, password })
+        });
 
-    if (isAdmin || (roleFromInput === 'admin' && username === 'admin' && password === 'admin123')) {
-        const adminUserObj = {
-            username: 'admin',
-            role: 'admin',
-            fullName: 'Admin User',
-            designation: 'Production Manager'
-        };
-        localStorage.setItem('ipss_user', JSON.stringify(adminUserObj));
-        localStorage.setItem('itps_user', JSON.stringify(adminUserObj));
+        localStorage.setItem('ipss_token', data.access_token);
+        localStorage.setItem('ipss_user', JSON.stringify(data.user));
+
         window.location.href = 'dashboard.html';
         return false;
-    } else if (isUser || (roleFromInput === 'user' && (username === 'user' || username === 'operator') && (password === 'user123' || password === 'operator123'))) {
-        const userObj = {
-            username: 'user',
-            role: 'user',
-            fullName: 'Staff Operator',
-            designation: 'Machine & Line Operator'
-        };
-        localStorage.setItem('ipss_user', JSON.stringify(userObj));
-        localStorage.setItem('itps_user', JSON.stringify(userObj));
-        window.location.href = 'dashboard.html';
-        return false;
-    } else if (username !== '' && password !== '') {
-        const fallbackRole = roleFromInput === 'user' ? 'user' : 'admin';
-        const userObj = {
-            username: username,
-            role: fallbackRole,
-            fullName: fallbackRole === 'user' ? 'Staff Operator' : 'Admin User',
-            designation: fallbackRole === 'user' ? 'Machine & Line Operator' : 'Production Manager'
-        };
-        localStorage.setItem('ipss_user', JSON.stringify(userObj));
-        localStorage.setItem('itps_user', JSON.stringify(userObj));
-        window.location.href = 'dashboard.html';
-        return false;
-    } else {
+    } catch (err) {
         if (errorMsgDiv) {
             const hint = activeLoginRole === 'admin' ? 'admin / admin123' : 'user / user123';
-            errorMsgDiv.textContent = `❌ Invalid credentials for ${activeLoginRole === 'admin' ? 'Admin' : 'Operator'}! Try: ${hint}`;
+            errorMsgDiv.textContent = `❌ ${err.message || 'Invalid credentials'}. Try: ${hint}`;
             errorMsgDiv.style.display = 'block';
         } else {
             alert('Invalid credentials!');
         }
         return false;
+    } finally {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Sign In →';
+        }
     }
 }
 
@@ -533,40 +428,48 @@ function setupLoginForm() {
     });
 }
 
-// --- PROFILE PAGE LOGIC ---
-function loadProfile() {
-    const profile = getProfile();
-    if (!profile) return;
 
-    const initials = profile.fullName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+// ==========================================
+// PROFILE PAGE LOGIC
+// ==========================================
+async function loadProfile() {
+    try {
+        const profile = await apiFetch('/api/auth/me');
+        if (!profile) return;
 
-    // Header Banner
-    if (document.getElementById('profileAvatarLarge')) document.getElementById('profileAvatarLarge').textContent = initials;
-    if (document.getElementById('profileHeaderFullName')) document.getElementById('profileHeaderFullName').textContent = profile.fullName;
-    if (document.getElementById('profileHeaderUsername')) document.getElementById('profileHeaderUsername').textContent = profile.username;
-    if (document.getElementById('profileHeaderRole')) document.getElementById('profileHeaderRole').textContent = profile.designation;
+        // Update stored user
+        localStorage.setItem('ipss_user', JSON.stringify(profile));
 
-    // Personal Info Cards
-    if (document.getElementById('infoFullName')) document.getElementById('infoFullName').textContent = profile.fullName;
-    if (document.getElementById('infoUsername')) document.getElementById('infoUsername').textContent = profile.username;
-    if (document.getElementById('infoEmail')) document.getElementById('infoEmail').textContent = profile.email;
-    if (document.getElementById('infoPhone')) document.getElementById('infoPhone').textContent = profile.phone;
-    if (document.getElementById('infoDob')) document.getElementById('infoDob').textContent = profile.dob;
-    if (document.getElementById('infoGender')) document.getElementById('infoGender').textContent = profile.gender;
-    if (document.getElementById('infoAddress')) document.getElementById('infoAddress').textContent = profile.address;
+        const initials = (profile.full_name || profile.fullName || 'User')
+            .split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
 
-    // Professional Info Cards
-    if (document.getElementById('infoEmpId')) document.getElementById('infoEmpId').textContent = profile.employeeId || 'IPSS-001';
-    if (document.getElementById('infoDepartment')) document.getElementById('infoDepartment').textContent = profile.department || 'Operations';
-    if (document.getElementById('infoDesignation')) document.getElementById('infoDesignation').textContent = profile.designation || 'Staff';
+        if (document.getElementById('profileAvatarLarge')) document.getElementById('profileAvatarLarge').textContent = initials;
+        if (document.getElementById('profileHeaderFullName')) document.getElementById('profileHeaderFullName').textContent = profile.full_name || profile.fullName;
+        if (document.getElementById('profileHeaderUsername')) document.getElementById('profileHeaderUsername').textContent = profile.username;
+        if (document.getElementById('profileHeaderRole')) document.getElementById('profileHeaderRole').textContent = profile.designation;
 
-    // Populate Edit Form Inputs
-    if (document.getElementById('editFullName')) document.getElementById('editFullName').value = profile.fullName;
-    if (document.getElementById('editEmail')) document.getElementById('editEmail').value = profile.email;
-    if (document.getElementById('editPhone')) document.getElementById('editPhone').value = profile.phone;
-    if (document.getElementById('editDob')) document.getElementById('editDob').value = profile.dob;
-    if (document.getElementById('editGender')) document.getElementById('editGender').value = profile.gender;
-    if (document.getElementById('editAddress')) document.getElementById('editAddress').value = profile.address;
+        if (document.getElementById('infoFullName')) document.getElementById('infoFullName').textContent = profile.full_name || profile.fullName;
+        if (document.getElementById('infoUsername')) document.getElementById('infoUsername').textContent = profile.username;
+        if (document.getElementById('infoEmail')) document.getElementById('infoEmail').textContent = profile.email;
+        if (document.getElementById('infoPhone')) document.getElementById('infoPhone').textContent = profile.phone || 'N/A';
+        if (document.getElementById('infoDob')) document.getElementById('infoDob').textContent = profile.dob || 'N/A';
+        if (document.getElementById('infoGender')) document.getElementById('infoGender').textContent = profile.gender || 'N/A';
+        if (document.getElementById('infoAddress')) document.getElementById('infoAddress').textContent = profile.address || 'N/A';
+
+        if (document.getElementById('infoEmpId')) document.getElementById('infoEmpId').textContent = profile.employee_id || profile.employeeId || 'IPSS-001';
+        if (document.getElementById('infoDepartment')) document.getElementById('infoDepartment').textContent = profile.department || 'Operations';
+        if (document.getElementById('infoDesignation')) document.getElementById('infoDesignation').textContent = profile.designation || 'Staff';
+
+        // Populate Edit Form
+        if (document.getElementById('editFullName')) document.getElementById('editFullName').value = profile.full_name || profile.fullName || '';
+        if (document.getElementById('editEmail')) document.getElementById('editEmail').value = profile.email || '';
+        if (document.getElementById('editPhone')) document.getElementById('editPhone').value = profile.phone || '';
+        if (document.getElementById('editDob')) document.getElementById('editDob').value = profile.dob || '';
+        if (document.getElementById('editGender')) document.getElementById('editGender').value = profile.gender || 'Male';
+        if (document.getElementById('editAddress')) document.getElementById('editAddress').value = profile.address || '';
+    } catch (err) {
+        console.error('Failed to load profile from backend:', err);
+    }
 }
 
 function toggleEditProfileForm() {
@@ -584,227 +487,218 @@ function setupEditProfileForm() {
     const form = document.getElementById('editProfileForm');
     if (!form) return;
 
-    form.addEventListener('submit', function (event) {
+    form.addEventListener('submit', async function (event) {
         event.preventDefault();
 
-        let profile = getProfile();
-        profile.fullName = document.getElementById('editFullName').value.trim();
-        profile.email = document.getElementById('editEmail').value.trim();
-        profile.phone = document.getElementById('editPhone').value.trim();
-        profile.dob = document.getElementById('editDob').value;
-        profile.gender = document.getElementById('editGender').value;
-        profile.address = document.getElementById('editAddress').value.trim();
+        const payload = {
+            full_name: document.getElementById('editFullName').value.trim(),
+            email: document.getElementById('editEmail').value.trim(),
+            phone: document.getElementById('editPhone').value.trim(),
+            dob: document.getElementById('editDob').value,
+            gender: document.getElementById('editGender').value,
+            address: document.getElementById('editAddress').value.trim()
+        };
 
-        saveProfileData(profile);
-        loadProfile();
-        updateHeaderProfileInfo();
+        try {
+            const updatedUser = await apiFetch('/api/auth/profile', {
+                method: 'PUT',
+                body: JSON.stringify(payload)
+            });
 
-        const alertBox = document.getElementById('profileAlertMsg');
-        if (alertBox) {
-            alertBox.textContent = '✅ Profile updated successfully.';
-            alertBox.style.display = 'flex';
-            setTimeout(() => { alertBox.style.display = 'none'; }, 4000);
-        } else {
-            alert('Profile updated successfully.');
+            localStorage.setItem('ipss_user', JSON.stringify(updatedUser));
+            await loadProfile();
+            updateHeaderProfileInfo();
+
+            const alertBox = document.getElementById('profileAlertMsg');
+            if (alertBox) {
+                alertBox.textContent = '✅ Profile updated successfully in database.';
+                alertBox.style.display = 'flex';
+                setTimeout(() => { alertBox.style.display = 'none'; }, 4000);
+            } else {
+                showToast('Success', 'Profile updated successfully.', 'success');
+            }
+
+            toggleEditProfileForm();
+        } catch (err) {
+            alert('Failed to update profile: ' + err.message);
         }
-
-        toggleEditProfileForm();
-        addRecentActivity('Updated user profile details', 'info');
     });
 }
 
 
+// ==========================================
+// DASHBOARD PAGE LOGIC
+// ==========================================
+async function updateDashboard() {
+    try {
+        const stats = await apiFetch('/api/dashboard/stats');
 
-// --- DASHBOARD PAGE ---
-function updateDashboard() {
-    const products = getData('itps_products');
-    const machines = getData('itps_machines');
-    const orders = getData('itps_orders');
-    const activities = getData('itps_activities');
+        if (document.getElementById('dashTotalProducts')) document.getElementById('dashTotalProducts').textContent = stats.totalProducts;
+        if (document.getElementById('dashTotalMachines')) document.getElementById('dashTotalMachines').textContent = stats.totalMachines;
+        if (document.getElementById('dashTotalOrders')) document.getElementById('dashTotalOrders').textContent = stats.totalOrders;
+        if (document.getElementById('dashPendingOrders')) document.getElementById('dashPendingOrders').textContent = stats.pendingOrders;
+        if (document.getElementById('dashCompletedOrders')) document.getElementById('dashCompletedOrders').textContent = stats.completedOrders;
+        if (document.getElementById('dashDelayedOrders')) document.getElementById('dashDelayedOrders').textContent = stats.delayedOrders;
 
-    const totalProducts = products.length;
-    const totalMachines = machines.length;
-    const totalOrders = orders.length;
-    const pendingOrders = orders.filter(o => o.status === 'Pending').length;
-    const completedOrders = orders.filter(o => o.status === 'Completed').length;
+        if (document.getElementById('dashProgressVal')) document.getElementById('dashProgressVal').textContent = stats.completionPercentage + '%';
+        if (document.getElementById('dashProgressBarFill')) document.getElementById('dashProgressBarFill').style.width = stats.completionPercentage + '%';
 
-    const today = new Date().toISOString().split('T')[0];
-    const delayedOrders = orders.filter(o => o.deadline < today && o.status !== 'Completed').length;
-
-    // Stats Cards
-    if (document.getElementById('dashTotalProducts')) document.getElementById('dashTotalProducts').textContent = totalProducts;
-    if (document.getElementById('dashTotalMachines')) document.getElementById('dashTotalMachines').textContent = totalMachines;
-    if (document.getElementById('dashTotalOrders')) document.getElementById('dashTotalOrders').textContent = totalOrders;
-    if (document.getElementById('dashPendingOrders')) document.getElementById('dashPendingOrders').textContent = pendingOrders;
-    if (document.getElementById('dashCompletedOrders')) document.getElementById('dashCompletedOrders').textContent = completedOrders;
-    if (document.getElementById('dashDelayedOrders')) document.getElementById('dashDelayedOrders').textContent = delayedOrders;
-
-    // Production Progress
-    const completionPercentage = totalOrders > 0 ? Math.round((completedOrders / totalOrders) * 100) : 0;
-    if (document.getElementById('dashProgressVal')) document.getElementById('dashProgressVal').textContent = completionPercentage + '%';
-    if (document.getElementById('dashProgressBarFill')) document.getElementById('dashProgressBarFill').style.width = completionPercentage + '%';
-
-    // Dashboard Notifications / Alerts
-    const notifArea = document.getElementById('dashboardNotifications');
-    if (notifArea) {
-        notifArea.innerHTML = '';
-        if (delayedOrders > 0) {
-            notifArea.innerHTML += `
-                <div class="alert-box alert-danger">
-                    <span>⚠️ <strong>Alert:</strong> ${delayedOrders} production order(s) are past deadline!</span>
-                    <a href="orders.html" class="btn btn-sm btn-danger">View Orders</a>
-                </div>`;
+        // Notifications
+        const notifArea = document.getElementById('dashboardNotifications');
+        if (notifArea) {
+            notifArea.innerHTML = '';
+            if (stats.delayedOrders > 0) {
+                notifArea.innerHTML += `
+                    <div class="alert-box alert-danger">
+                        <span>⚠️ <strong>Alert:</strong> ${stats.delayedOrders} production order(s) are past deadline!</span>
+                        <a href="orders.html" class="btn btn-sm btn-danger">View Orders</a>
+                    </div>`;
+            }
+            if (stats.maintenanceCount > 0) {
+                notifArea.innerHTML += `
+                    <div class="alert-box alert-warning">
+                        <span>🔧 <strong>Notice:</strong> ${stats.maintenanceCount} machine(s) are currently under maintenance.</span>
+                        <a href="machines.html" class="btn btn-sm btn-secondary">Check Status</a>
+                    </div>`;
+            }
         }
-        const maintenanceCount = machines.filter(m => m.status === 'Maintenance').length;
-        if (maintenanceCount > 0) {
-            notifArea.innerHTML += `
-                <div class="alert-box alert-warning">
-                    <span>🔧 <strong>Notice:</strong> ${maintenanceCount} machine(s) are currently under maintenance.</span>
-                    <a href="machines.html" class="btn btn-sm btn-secondary">Check Status</a>
-                </div>`;
-        }
-    }
 
-    // Machine Status List & Utilization
-    const machineBody = document.getElementById('dashMachineStatusBody');
-    if (machineBody) {
-        machineBody.innerHTML = '';
-        machines.forEach(m => {
-            let badgeClass = 'badge-success';
-            let util = '85%';
-            if (m.status === 'Working') { badgeClass = 'badge-warning'; util = '70%'; }
-            if (m.status === 'Maintenance') { badgeClass = 'badge-danger'; util = '0%'; }
-
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td><strong>${m.machineName}</strong></td>
-                <td>${m.capacity} units/day</td>
-                <td><span class="badge ${badgeClass}">${m.status}</span></td>
-                <td>
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                        <div class="progress-track" style="flex: 1; height: 8px;">
-                            <div class="progress-fill" style="width: ${util};"></div>
-                        </div>
-                        <span style="font-size: 12px; font-weight: 600;">${util}</span>
-                    </div>
-                </td>
-            `;
-            machineBody.appendChild(tr);
-        });
-    }
-
-    // Upcoming Deadlines
-    const upcomingBody = document.getElementById('dashUpcomingDeadlinesBody');
-    if (upcomingBody) {
-        upcomingBody.innerHTML = '';
-        const pendingList = orders.filter(o => o.status === 'Pending').slice(0, 4);
-        if (pendingList.length === 0) {
-            upcomingBody.innerHTML = `<tr><td colspan="4" class="empty-placeholder">No upcoming pending deadlines.</td></tr>`;
-        } else {
-            pendingList.forEach(o => {
+        // Machine Status
+        const machineBody = document.getElementById('dashMachineStatusBody');
+        if (machineBody) {
+            machineBody.innerHTML = '';
+            stats.machineStatuses.forEach(m => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td><strong>${o.orderId}</strong></td>
-                    <td>${o.productName}</td>
-                    <td>${o.deadline}</td>
-                    <td><span class="badge badge-warning">Approaching</span></td>
+                    <td><strong>${m.machineName}</strong></td>
+                    <td>${m.capacity} units/day</td>
+                    <td><span class="badge ${m.badgeClass}">${m.status}</span></td>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <div class="progress-track" style="flex: 1; height: 8px;">
+                                <div class="progress-fill" style="width: ${m.utilization};"></div>
+                            </div>
+                            <span style="font-size: 12px; font-weight: 600;">${m.utilization}</span>
+                        </div>
+                    </td>
                 `;
-                upcomingBody.appendChild(tr);
+                machineBody.appendChild(tr);
             });
         }
-    }
 
-    // Recent Activity Feed
-    const activityList = document.getElementById('dashActivityList');
-    if (activityList) {
-        activityList.innerHTML = '';
-        activities.forEach(act => {
-            const div = document.createElement('div');
-            div.className = 'activity-item';
-            div.innerHTML = `
-                <div class="activity-icon">📌</div>
-                <div>${act.text}</div>
-                <div class="activity-time">${act.time}</div>
-            `;
-            activityList.appendChild(div);
-        });
+        // Upcoming Deadlines
+        const upcomingBody = document.getElementById('dashUpcomingDeadlinesBody');
+        if (upcomingBody) {
+            upcomingBody.innerHTML = '';
+            if (stats.upcomingDeadlines.length === 0) {
+                upcomingBody.innerHTML = `<tr><td colspan="4" class="empty-placeholder">No upcoming pending deadlines.</td></tr>`;
+            } else {
+                stats.upcomingDeadlines.forEach(o => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td><strong>${o.orderId}</strong></td>
+                        <td>${o.productName}</td>
+                        <td>${o.deadline}</td>
+                        <td><span class="badge badge-warning">Approaching</span></td>
+                    `;
+                    upcomingBody.appendChild(tr);
+                });
+            }
+        }
+
+        // Recent Activity List
+        const activityList = document.getElementById('dashActivityList');
+        if (activityList) {
+            activityList.innerHTML = '';
+            stats.recentActivities.forEach(act => {
+                const div = document.createElement('div');
+                div.className = 'activity-item';
+                div.innerHTML = `
+                    <div class="activity-icon">📌</div>
+                    <div>${act.text}</div>
+                    <div class="activity-time">${act.time}</div>
+                `;
+                activityList.appendChild(div);
+            });
+        }
+    } catch (err) {
+        console.error('Failed to load dashboard stats:', err);
     }
 }
 
-// --- PRODUCTS PAGE ---
-function renderProductsTable(filterText = '') {
-    let products = getData('itps_products');
-    const orders = getData('itps_orders');
+
+// ==========================================
+// PRODUCTS PAGE LOGIC
+// ==========================================
+async function renderProductsTable(filterText = '') {
     const tableBody = document.getElementById('productsTableBody');
     if (!tableBody) return;
 
-    // Filter products
-    let filteredProducts = products;
-    if (filterText) {
-        filteredProducts = products.filter(p => 
-            p.productName.toLowerCase().includes(filterText.toLowerCase()) || 
-            (p.category && p.category.toLowerCase().includes(filterText.toLowerCase()))
-        );
-    }
+    try {
+        const url = filterText ? `/api/products?search=${encodeURIComponent(filterText)}` : '/api/products';
+        const products = await apiFetch(url);
+        const orders = await apiFetch('/api/orders').catch(() => []);
 
-    // Compute Product Analytics
-    const totalCount = products.length;
-    let sumProcTime = 0;
-    let totalLinkedOrdersCount = 0;
-    let totalScheduledUnitsVolume = 0;
+        // Compute Product Analytics
+        const totalCount = products.length;
+        let sumProcTime = 0;
+        let totalLinkedOrdersCount = 0;
+        let totalScheduledUnitsVolume = 0;
 
-    products.forEach(p => {
-        sumProcTime += parseFloat(p.processingTime) || 0;
-        const matchingOrders = orders.filter(o => o.productName === p.productName);
-        totalLinkedOrdersCount += matchingOrders.length;
-        matchingOrders.forEach(o => {
-            totalScheduledUnitsVolume += parseInt(o.quantity) || 0;
+        products.forEach(p => {
+            sumProcTime += parseFloat(p.processing_time) || 0;
+            const matchingOrders = orders.filter(o => o.product_name === p.product_name);
+            totalLinkedOrdersCount += matchingOrders.length;
+            matchingOrders.forEach(o => {
+                totalScheduledUnitsVolume += parseInt(o.quantity) || 0;
+            });
         });
-    });
 
-    const avgProcTime = totalCount > 0 ? (sumProcTime / totalCount).toFixed(1) : '0.0';
+        const avgProcTime = totalCount > 0 ? (sumProcTime / totalCount).toFixed(1) : '0.0';
 
-    // Update KPI Cards
-    if (document.getElementById('prdTotalCount')) document.getElementById('prdTotalCount').textContent = totalCount;
-    if (document.getElementById('prdAvgProcTime')) document.getElementById('prdAvgProcTime').textContent = avgProcTime + ' hrs';
-    if (document.getElementById('prdTotalOrdersLinked')) document.getElementById('prdTotalOrdersLinked').textContent = totalLinkedOrdersCount;
-    if (document.getElementById('prdTotalVolume')) document.getElementById('prdTotalVolume').textContent = totalScheduledUnitsVolume + ' units';
+        if (document.getElementById('prdTotalCount')) document.getElementById('prdTotalCount').textContent = totalCount;
+        if (document.getElementById('prdAvgProcTime')) document.getElementById('prdAvgProcTime').textContent = avgProcTime + ' hrs';
+        if (document.getElementById('prdTotalOrdersLinked')) document.getElementById('prdTotalOrdersLinked').textContent = totalLinkedOrdersCount;
+        if (document.getElementById('prdTotalVolume')) document.getElementById('prdTotalVolume').textContent = totalScheduledUnitsVolume + ' units';
 
-    tableBody.innerHTML = '';
+        tableBody.innerHTML = '';
 
-    if (filteredProducts.length === 0) {
-        tableBody.innerHTML = `<tr><td colspan="8" class="empty-placeholder">No master products found.</td></tr>`;
-        return;
-    }
-
-    filteredProducts.forEach((product, index) => {
-        const matchingOrders = orders.filter(o => o.productName === product.productName);
-        const linkedOrdersCount = matchingOrders.length;
-        let productVolume = 0;
-        matchingOrders.forEach(o => { productVolume += parseInt(o.quantity) || 0; });
+        if (products.length === 0) {
+            tableBody.innerHTML = `<tr><td colspan="8" class="empty-placeholder">No master products found.</td></tr>`;
+            return;
+        }
 
         const currentUser = getCurrentUser();
-        const isUserRole = currentUser && currentUser.role === 'user';
+        const isOperator = currentUser && currentUser.role.toUpperCase() === 'OPERATOR';
 
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td>#${index + 1}</td>
-            <td><strong>${product.productName}</strong></td>
-            <td><span class="badge badge-info">${product.category || 'General'}</span></td>
-            <td>${product.processingTime} hrs/unit</td>
-            <td><span class="badge badge-warning">🏭 ${product.preferredLine || 'All Machines'}</span></td>
-            <td><strong>${linkedOrdersCount}</strong> active order(s)</td>
-            <td><strong>${productVolume}</strong> units scheduled</td>
-            <td class="action-buttons">
-                ${isUserRole ? 
-                    '<span class="view-only-tag">👁️ View Only</span>' : 
-                    `<button class="btn btn-secondary btn-sm" onclick="editProduct(${product.id})">Edit</button>
-                     <button class="btn btn-danger btn-sm" onclick="deleteProduct(${product.id})">Delete</button>`
-                }
-            </td>
-        `;
-        tableBody.appendChild(tr);
-    });
+        products.forEach((product, index) => {
+            const matchingOrders = orders.filter(o => o.product_name === product.product_name);
+            const linkedOrdersCount = matchingOrders.length;
+            let productVolume = 0;
+            matchingOrders.forEach(o => { productVolume += parseInt(o.quantity) || 0; });
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>#${index + 1}</td>
+                <td><strong>${product.product_name}</strong></td>
+                <td><span class="badge badge-info">${product.category || 'General'}</span></td>
+                <td>${product.processing_time} hrs/unit</td>
+                <td><span class="badge badge-warning">🏭 ${product.preferred_line || 'All Machines'}</span></td>
+                <td><strong>${linkedOrdersCount}</strong> active order(s)</td>
+                <td><strong>${productVolume}</strong> units scheduled</td>
+                <td class="action-buttons">
+                    ${isOperator ? 
+                        '<span class="view-only-tag">👁️ View Only</span>' : 
+                        `<button class="btn btn-secondary btn-sm" onclick="editProduct(${product.id})">Edit</button>
+                         <button class="btn btn-danger btn-sm" onclick="deleteProduct(${product.id})">Delete</button>`
+                    }
+                </td>
+            `;
+            tableBody.appendChild(tr);
+        });
+    } catch (err) {
+        console.error('Failed to render products table:', err);
+    }
 }
 
 function setupProductSearch() {
@@ -822,15 +716,13 @@ function setupProductForm() {
     if (!form) return;
 
     const currentUser = getCurrentUser();
-    if (currentUser && currentUser.role === 'user') {
+    if (currentUser && currentUser.role.toUpperCase() === 'OPERATOR') {
         const formCard = form.closest('.card');
-        if (formCard) {
-            formCard.style.display = 'none'; // Hide product creation form for standard users
-        }
+        if (formCard) formCard.style.display = 'none';
         return;
     }
 
-    form.addEventListener('submit', function (event) {
+    form.addEventListener('submit', async function (event) {
         event.preventDefault();
 
         const productId = document.getElementById('productId').value;
@@ -842,69 +734,69 @@ function setupProductForm() {
         if (!productName) { alert('Please enter a product name.'); return; }
         if (isNaN(processingTime) || processingTime <= 0) { alert('Please enter a valid processing time greater than 0.'); return; }
 
-        let products = getData('itps_products');
+        try {
+            if (productId) {
+                await apiFetch(`/api/products/${productId}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({
+                        product_name: productName,
+                        category,
+                        processing_time: processingTime,
+                        preferred_line: preferredLine
+                    })
+                });
+                showToast('Product Updated', `Updated product master "${productName}"`, 'success');
+            } else {
+                await apiFetch('/api/products', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        product_name: productName,
+                        category,
+                        processing_time: processingTime,
+                        preferred_line: preferredLine
+                    })
+                });
+                showToast('Product Created', `Added product master "${productName}"`, 'success');
+            }
 
-        if (productId) {
-            products = products.map(p => p.id == productId ? { id: parseInt(productId), productName, category, processingTime, preferredLine } : p);
-            addRecentActivity(`Updated Product Master "${productName}"`, 'info');
-            alert('Product master updated successfully!');
-        } else {
-            const newProduct = { 
-                id: Date.now(), 
-                productName: productName, 
-                category: category, 
-                processingTime: processingTime, 
-                preferredLine: preferredLine 
-            };
-            products.push(newProduct);
-            addRecentActivity(`Created Product Master "${productName}"`, 'success');
-            alert('Product master added successfully!');
+            resetProductForm();
+            await renderProductsTable();
+        } catch (err) {
+            alert('Failed to save product: ' + err.message);
         }
-
-        saveData('itps_products', products);
-        resetProductForm();
-        renderProductsTable();
     });
 
     if (cancelBtn) cancelBtn.addEventListener('click', resetProductForm);
 }
 
-function editProduct(id) {
-    const currentUser = getCurrentUser();
-    if (currentUser && currentUser.role === 'user') {
-        showToast('Permission Denied', 'Standard users cannot modify master products.', 'error');
-        return;
-    }
+async function editProduct(id) {
+    try {
+        const product = await apiFetch(`/api/products/${id}`);
+        if (product) {
+            document.getElementById('productId').value = product.id;
+            document.getElementById('productName').value = product.product_name;
+            if (document.getElementById('productCategory')) document.getElementById('productCategory').value = product.category || 'General Assembly';
+            document.getElementById('processingTime').value = product.processing_time;
+            if (document.getElementById('assignedMachineSelect')) document.getElementById('assignedMachineSelect').value = product.preferred_line || 'All Machines';
 
-    const products = getData('itps_products');
-    const product = products.find(p => p.id == id);
-    if (product) {
-        document.getElementById('productId').value = product.id;
-        document.getElementById('productName').value = product.productName;
-        if (document.getElementById('productCategory')) document.getElementById('productCategory').value = product.category || 'General Assembly';
-        document.getElementById('processingTime').value = product.processingTime;
-        if (document.getElementById('assignedMachineSelect')) document.getElementById('assignedMachineSelect').value = product.preferredLine || 'All Machines';
-
-        document.getElementById('formSubmitBtn').textContent = 'Update Product Master';
-        if (document.getElementById('productFormTitle')) document.getElementById('productFormTitle').textContent = 'Edit Product Master';
-        if (document.getElementById('cancelProductEditBtn')) document.getElementById('cancelProductEditBtn').style.display = 'inline-block';
+            document.getElementById('formSubmitBtn').textContent = 'Update Product Master';
+            if (document.getElementById('productFormTitle')) document.getElementById('productFormTitle').textContent = 'Edit Product Master';
+            if (document.getElementById('cancelProductEditBtn')) document.getElementById('cancelProductEditBtn').style.display = 'inline-block';
+        }
+    } catch (err) {
+        alert('Could not fetch product details: ' + err.message);
     }
 }
 
-function deleteProduct(id) {
-    const currentUser = getCurrentUser();
-    if (currentUser && currentUser.role === 'user') {
-        showToast('Permission Denied', 'Standard users cannot delete master products.', 'error');
-        return;
-    }
-
+async function deleteProduct(id) {
     if (confirm('Are you sure you want to delete this master product?')) {
-        let products = getData('itps_products');
-        const prodObj = products.find(p => p.id == id);
-        products = products.filter(p => p.id != id);
-        saveData('itps_products', products);
-        if (prodObj) addRecentActivity(`Deleted Product Master "${prodObj.productName}"`, 'danger');
-        renderProductsTable();
+        try {
+            await apiFetch(`/api/products/${id}`, { method: 'DELETE' });
+            showToast('Product Deleted', 'Master product deleted successfully', 'success');
+            await renderProductsTable();
+        } catch (err) {
+            alert('Failed to delete product: ' + err.message);
+        }
     }
 }
 
@@ -917,41 +809,46 @@ function resetProductForm() {
     if (document.getElementById('cancelProductEditBtn')) document.getElementById('cancelProductEditBtn').style.display = 'none';
 }
 
-// --- MACHINES PAGE ---
-function renderMachinesTable(filterText = '') {
-    let machines = getData('itps_machines');
+
+// ==========================================
+// MACHINES PAGE LOGIC
+// ==========================================
+async function renderMachinesTable(filterText = '') {
     const tableBody = document.getElementById('machinesTableBody');
     if (!tableBody) return;
 
-    if (filterText) {
-        machines = machines.filter(m => m.machineName.toLowerCase().includes(filterText.toLowerCase()));
+    try {
+        const url = filterText ? `/api/machines?search=${encodeURIComponent(filterText)}` : '/api/machines';
+        const machines = await apiFetch(url);
+
+        tableBody.innerHTML = '';
+
+        if (machines.length === 0) {
+            tableBody.innerHTML = `<tr><td colspan="5" class="empty-placeholder">No machines found.</td></tr>`;
+            return;
+        }
+
+        machines.forEach((machine, index) => {
+            let badgeClass = 'badge-success';
+            if (machine.status === 'Working') badgeClass = 'badge-warning';
+            if (machine.status === 'Maintenance') badgeClass = 'badge-danger';
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>#${index + 1}</td>
+                <td><strong>${machine.machine_name}</strong></td>
+                <td>${machine.capacity} units/day</td>
+                <td><span class="badge ${badgeClass}">${machine.status}</span></td>
+                <td class="action-buttons">
+                    <button class="btn btn-secondary btn-sm" onclick="editMachine(${machine.id})">Edit</button>
+                    <button class="btn btn-danger btn-sm" onclick="deleteMachine(${machine.id})">Delete</button>
+                </td>
+            `;
+            tableBody.appendChild(tr);
+        });
+    } catch (err) {
+        console.error('Failed to render machines table:', err);
     }
-
-    tableBody.innerHTML = '';
-
-    if (machines.length === 0) {
-        tableBody.innerHTML = `<tr><td colspan="5" class="empty-placeholder">No machines found.</td></tr>`;
-        return;
-    }
-
-    machines.forEach((machine, index) => {
-        let badgeClass = 'badge-success';
-        if (machine.status === 'Working') badgeClass = 'badge-warning';
-        if (machine.status === 'Maintenance') badgeClass = 'badge-danger';
-
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td>#${index + 1}</td>
-            <td><strong>${machine.machineName}</strong></td>
-            <td>${machine.capacity} units/day</td>
-            <td><span class="badge ${badgeClass}">${machine.status}</span></td>
-            <td class="action-buttons">
-                <button class="btn btn-secondary btn-sm" onclick="editMachine(${machine.id})">Edit</button>
-                <button class="btn btn-danger btn-sm" onclick="deleteMachine(${machine.id})">Delete</button>
-            </td>
-        `;
-        tableBody.appendChild(tr);
-    });
 }
 
 function setupMachineSearch() {
@@ -968,7 +865,7 @@ function setupMachineForm() {
     const cancelBtn = document.getElementById('cancelMachineEditBtn');
     if (!form) return;
 
-    form.addEventListener('submit', function (event) {
+    form.addEventListener('submit', async function (event) {
         event.preventDefault();
 
         const machineId = document.getElementById('machineId').value;
@@ -979,50 +876,58 @@ function setupMachineForm() {
         if (!machineName) { alert('Please enter machine name.'); return; }
         if (isNaN(capacity) || capacity <= 0) { alert('Please enter a valid capacity greater than 0.'); return; }
 
-        let machines = getData('itps_machines');
+        try {
+            if (machineId) {
+                await apiFetch(`/api/machines/${machineId}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ machine_name: machineName, capacity, status })
+                });
+                showToast('Machine Updated', `Updated machine "${machineName}"`, 'success');
+            } else {
+                await apiFetch('/api/machines', {
+                    method: 'POST',
+                    body: JSON.stringify({ machine_name: machineName, capacity, status })
+                });
+                showToast('Machine Added', `Added machine "${machineName}"`, 'success');
+            }
 
-        if (machineId) {
-            machines = machines.map(m => m.id == machineId ? { id: parseInt(machineId), machineName, capacity, status } : m);
-            addRecentActivity(`Updated machine "${machineName}" (${status})`, 'warning');
-            alert('Machine updated successfully!');
-        } else {
-            const newMachine = { id: Date.now(), machineName: machineName, capacity: capacity, status: status };
-            machines.push(newMachine);
-            addRecentActivity(`Added machine "${machineName}"`, 'success');
-            alert('Machine added successfully!');
+            resetMachineForm();
+            await renderMachinesTable();
+        } catch (err) {
+            alert('Failed to save machine: ' + err.message);
         }
-
-        saveData('itps_machines', machines);
-        resetMachineForm();
-        renderMachinesTable();
     });
 
     if (cancelBtn) cancelBtn.addEventListener('click', resetMachineForm);
 }
 
-function editMachine(id) {
-    const machines = getData('itps_machines');
-    const machine = machines.find(m => m.id == id);
-    if (machine) {
-        document.getElementById('machineId').value = machine.id;
-        document.getElementById('machineName').value = machine.machineName;
-        document.getElementById('machineCapacity').value = machine.capacity;
-        document.getElementById('machineStatus').value = machine.status;
+async function editMachine(id) {
+    try {
+        const machine = await apiFetch(`/api/machines/${id}`);
+        if (machine) {
+            document.getElementById('machineId').value = machine.id;
+            document.getElementById('machineName').value = machine.machine_name;
+            document.getElementById('machineCapacity').value = machine.capacity;
+            document.getElementById('machineStatus').value = machine.status;
 
-        document.getElementById('machineFormBtn').textContent = 'Update Machine';
-        if (document.getElementById('machineFormTitle')) document.getElementById('machineFormTitle').textContent = 'Edit Machine';
-        if (document.getElementById('cancelMachineEditBtn')) document.getElementById('cancelMachineEditBtn').style.display = 'inline-block';
+            document.getElementById('machineFormBtn').textContent = 'Update Machine';
+            if (document.getElementById('machineFormTitle')) document.getElementById('machineFormTitle').textContent = 'Edit Machine';
+            if (document.getElementById('cancelMachineEditBtn')) document.getElementById('cancelMachineEditBtn').style.display = 'inline-block';
+        }
+    } catch (err) {
+        alert('Could not fetch machine details: ' + err.message);
     }
 }
 
-function deleteMachine(id) {
+async function deleteMachine(id) {
     if (confirm('Are you sure you want to delete this machine?')) {
-        let machines = getData('itps_machines');
-        const mObj = machines.find(m => m.id == id);
-        machines = machines.filter(m => m.id != id);
-        saveData('itps_machines', machines);
-        if (mObj) addRecentActivity(`Deleted machine "${mObj.machineName}"`, 'danger');
-        renderMachinesTable();
+        try {
+            await apiFetch(`/api/machines/${id}`, { method: 'DELETE' });
+            showToast('Machine Deleted', 'Machine deleted successfully', 'success');
+            await renderMachinesTable();
+        } catch (err) {
+            alert('Failed to delete machine: ' + err.message);
+        }
     }
 }
 
@@ -1035,7 +940,10 @@ function resetMachineForm() {
     if (document.getElementById('cancelMachineEditBtn')) document.getElementById('cancelMachineEditBtn').style.display = 'none';
 }
 
-// --- ORDERS PAGE ---
+
+// ==========================================
+// ORDERS PAGE LOGIC
+// ==========================================
 function switchOrderTab(tabName) {
     const manualBtn = document.getElementById('tabBtnManual');
     const bulkBtn = document.getElementById('tabBtnBulk');
@@ -1047,40 +955,43 @@ function switchOrderTab(tabName) {
     if (tabName === 'manual') {
         manualBtn.classList.add('active');
         bulkBtn.classList.remove('active');
-        manualContent.style.display = 'block';
-        bulkContent.style.display = 'none';
+        if (manualContent) manualContent.style.display = 'block';
+        if (bulkContent) bulkContent.style.display = 'none';
     } else {
         bulkBtn.classList.add('active');
         manualBtn.classList.remove('active');
-        bulkContent.style.display = 'block';
-        manualContent.style.display = 'none';
+        if (bulkContent) bulkContent.style.display = 'block';
+        if (manualContent) manualContent.style.display = 'none';
     }
 }
 
-function populateOrderProductSelect() {
+async function populateOrderProductSelect() {
     const productSelect = document.getElementById('orderProductSelect');
     const procTimeInput = document.getElementById('orderProcessingTime');
     if (!productSelect) return;
 
-    const products = getData('itps_products');
-    productSelect.innerHTML = '<option value="">-- Select Product --</option>';
+    try {
+        const products = await apiFetch('/api/products');
+        productSelect.innerHTML = '<option value="">-- Select Product --</option>';
 
-    products.forEach(p => {
-        const option = document.createElement('option');
-        option.value = p.productName;
-        option.textContent = p.productName;
-        productSelect.appendChild(option);
-    });
+        products.forEach(p => {
+            const option = document.createElement('option');
+            option.value = p.product_name;
+            option.textContent = p.product_name;
+            productSelect.appendChild(option);
+        });
 
-    productSelect.addEventListener('change', function () {
-        const selected = products.find(p => p.productName === this.value);
-        if (selected && procTimeInput) {
-            procTimeInput.value = selected.processingTime || 0.05;
-        }
-    });
+        productSelect.addEventListener('change', function () {
+            const selected = products.find(p => p.product_name === this.value);
+            if (selected && procTimeInput) {
+                procTimeInput.value = selected.processing_time || 0.05;
+            }
+        });
+    } catch (err) {
+        console.error('Failed to populate product select:', err);
+    }
 }
 
-// --- Sample CSV Generator ---
 function downloadSampleCSV() {
     const csvHeader = "Product,Quantity,Priority,Deadline,ProcessingTime\n";
     const sampleRows = [
@@ -1100,7 +1011,7 @@ function downloadSampleCSV() {
     document.body.removeChild(link);
 }
 
-// --- Bulk CSV Drag & Drop Upload Engine ---
+// Bulk File Upload
 let parsedBulkOrders = [];
 
 function initBulkCSVUpload() {
@@ -1164,12 +1075,12 @@ function parseJSONText(text) {
         let invalidCount = 0;
 
         list.forEach((item, idx) => {
-            const product = item.product || item.productName || '';
+            const product = item.product || item.productName || item.product_name || '';
             const qty = parseInt(item.quantity || item.qty);
             const rawP = item.priority || 'Medium';
             const priority = rawP.charAt(0).toUpperCase() + rawP.slice(1).toLowerCase();
             const deadline = item.deadline || '';
-            const procTime = parseFloat(item.processingTime) || 0.05;
+            const procTime = parseFloat(item.processingTime || item.processing_time) || 0.05;
 
             let isValid = true;
             let errors = [];
@@ -1205,7 +1116,7 @@ function parseJSONText(text) {
         const previewContainer = document.getElementById('csvPreviewContainer');
         if (previewContainer) previewContainer.style.display = 'block';
     } catch (err) {
-        alert('Could not parse JSON file. Please check file format.');
+        alert('Could not parse JSON file. Please check format.');
     }
 }
 
@@ -1220,7 +1131,6 @@ function parseCSVText(text) {
     let validCount = 0;
     let invalidCount = 0;
 
-    // Auto-detect header row
     const startIdx = lines[0].toLowerCase().includes('product') ? 1 : 0;
 
     for (let i = startIdx; i < lines.length; i++) {
@@ -1301,93 +1211,93 @@ function resetBulkCSV() {
     if (fileInput) fileInput.value = '';
 }
 
-// --- Pre-Scheduling Live Analysis Engine ---
+// Pre-Scheduling Simulation Modal
 let currentAnalysisOrders = [];
 
-function analyzePreSchedule(ordersToAnalyze) {
+async function analyzePreSchedule(ordersToAnalyze) {
     if (!ordersToAnalyze || ordersToAnalyze.length === 0) {
         alert('No valid orders to analyze!');
         return;
     }
 
-    const machines = getData('itps_machines');
-    const availableMachines = machines.filter(m => m.status === 'Available' || m.status === 'Working');
+    try {
+        const machines = await apiFetch('/api/machines');
+        const availableMachines = machines.filter(m => m.status === 'Available' || m.status === 'Working');
 
-    if (availableMachines.length === 0) {
-        alert('Warning: No operational machines currently available in system!');
-        return;
-    }
+        if (availableMachines.length === 0) {
+            alert('Warning: No operational machines currently available in system!');
+            return;
+        }
 
-    // Sort orders: Priority High -> Medium -> Low, then Earliest Deadline
-    const priorityWeight = { 'High': 3, 'Medium': 2, 'Low': 1 };
-    const sortedOrders = [...ordersToAnalyze].sort((a, b) => {
-        const pA = priorityWeight[a.priority] || 1;
-        const pB = priorityWeight[b.priority] || 1;
-        if (pA !== pB) return pB - pA;
-        return new Date(a.deadline) - new Date(b.deadline);
-    });
-
-    let totalUnits = 0;
-    let totalEstDurationHours = 0;
-
-    // Track machine finish times starting from current timestamp
-    const now = new Date();
-    const machineScheduleTrack = availableMachines.map(m => ({
-        machineName: m.machineName,
-        status: m.status,
-        availableAt: new Date(now),
-        assignedOrdersCount: 0,
-        totalWorkloadHours: 0
-    }));
-
-    const allocatedOrders = [];
-
-    sortedOrders.forEach((order, idx) => {
-        const qty = parseInt(order.quantity) || 1;
-        const procTimePerUnit = parseFloat(order.processingTime) || 0.05;
-        const durationHours = qty * procTimePerUnit;
-
-        totalUnits += qty;
-        totalEstDurationHours += durationHours;
-
-        // Assign to machine with earliest available slot
-        machineScheduleTrack.sort((a, b) => a.availableAt - b.availableAt);
-        const assignedM = machineScheduleTrack[0];
-
-        const startTime = new Date(assignedM.availableAt);
-        const endTime = new Date(startTime.getTime() + durationHours * 3600 * 1000);
-
-        assignedM.availableAt = new Date(endTime);
-        assignedM.assignedOrdersCount += 1;
-        assignedM.totalWorkloadHours += durationHours;
-
-        // Deadline risk calculation
-        const deadlineDate = new Date(order.deadline);
-        const isDelayed = endTime > deadlineDate;
-
-        allocatedOrders.push({
-            ...order,
-            orderId: order.orderId || ('ORD-' + Math.floor(100 + Math.random() * 900)),
-            assignedMachine: assignedM.machineName,
-            startTimeFormatted: formatDateTime(startTime),
-            endTimeFormatted: formatDateTime(endTime),
-            deadlineFormatted: formatDateTime(deadlineDate),
-            durationHours: durationHours.toFixed(2),
-            riskStatus: isDelayed ? 'Delay Alert' : 'On Track'
+        const priorityWeight = { 'High': 3, 'Medium': 2, 'Low': 1 };
+        const sortedOrders = [...ordersToAnalyze].sort((a, b) => {
+            const pA = priorityWeight[a.priority] || 1;
+            const pB = priorityWeight[b.priority] || 1;
+            if (pA !== pB) return pB - pA;
+            return new Date(a.deadline) - new Date(b.deadline);
         });
-    });
 
-    currentAnalysisOrders = allocatedOrders;
+        let totalUnits = 0;
+        let totalEstDurationHours = 0;
 
-    openAnalysisModal({
-        totalOrders: ordersToAnalyze.length,
-        totalUnits: totalUnits,
-        totalEstDurationHours: totalEstDurationHours.toFixed(1),
-        allMachines: machines,
-        availableMachinesCount: availableMachines.length,
-        machineScheduleTrack: machineScheduleTrack,
-        allocatedOrders: allocatedOrders
-    });
+        const now = new Date();
+        const machineScheduleTrack = availableMachines.map(m => ({
+            machineName: m.machine_name || m.machineName,
+            status: m.status,
+            availableAt: new Date(now),
+            assignedOrdersCount: 0,
+            totalWorkloadHours: 0
+        }));
+
+        const allocatedOrders = [];
+
+        sortedOrders.forEach((order) => {
+            const qty = parseInt(order.quantity) || 1;
+            const procTimePerUnit = parseFloat(order.processingTime || order.processing_time) || 0.05;
+            const durationHours = qty * procTimePerUnit;
+
+            totalUnits += qty;
+            totalEstDurationHours += durationHours;
+
+            machineScheduleTrack.sort((a, b) => a.availableAt - b.availableAt);
+            const assignedM = machineScheduleTrack[0];
+
+            const startTime = new Date(assignedM.availableAt);
+            const endTime = new Date(startTime.getTime() + durationHours * 3600 * 1000);
+
+            assignedM.availableAt = new Date(endTime);
+            assignedM.assignedOrdersCount += 1;
+            assignedM.totalWorkloadHours += durationHours;
+
+            const deadlineDate = new Date(order.deadline);
+            const isDelayed = endTime > deadlineDate;
+
+            allocatedOrders.push({
+                ...order,
+                orderId: order.orderId || order.order_id || ('ORD-' + Math.floor(100 + Math.random() * 900)),
+                assignedMachine: assignedM.machineName,
+                startTimeFormatted: formatDateTime(startTime),
+                endTimeFormatted: formatDateTime(endTime),
+                deadlineFormatted: formatDateTime(deadlineDate),
+                durationHours: durationHours.toFixed(2),
+                riskStatus: isDelayed ? 'Delay Alert' : 'On Track'
+            });
+        });
+
+        currentAnalysisOrders = allocatedOrders;
+
+        openAnalysisModal({
+            totalOrders: ordersToAnalyze.length,
+            totalUnits: totalUnits,
+            totalEstDurationHours: totalEstDurationHours.toFixed(1),
+            allMachines: machines,
+            availableMachinesCount: availableMachines.length,
+            machineScheduleTrack: machineScheduleTrack,
+            allocatedOrders: allocatedOrders
+        });
+    } catch (err) {
+        alert('Simulation error: ' + err.message);
+    }
 }
 
 function formatDateTime(d) {
@@ -1399,18 +1309,17 @@ function openAnalysisModal(data) {
     const modal = document.getElementById('analysisModal');
     if (!modal) return;
 
-    // Fill KPI Metrics
     document.getElementById('kpiTotalOrders').textContent = data.totalOrders;
     document.getElementById('kpiTotalUnits').textContent = data.totalUnits;
     document.getElementById('kpiEstDuration').textContent = data.totalEstDurationHours + ' hrs';
     document.getElementById('kpiAvailableMachines').textContent = `${data.availableMachinesCount} / ${data.allMachines.length}`;
 
-    // Fill Machine Chips
     const chipsContainer = document.getElementById('machineStatusChips');
     if (chipsContainer) {
         chipsContainer.innerHTML = '';
         data.allMachines.forEach(m => {
-            const trackObj = data.machineScheduleTrack.find(t => t.machineName === m.machineName);
+            const mName = m.machine_name || m.machineName;
+            const trackObj = data.machineScheduleTrack.find(t => t.machineName === mName);
             const statusLower = m.status ? m.status.toLowerCase() : 'available';
             const workloadText = trackObj ? ` (${trackObj.totalWorkloadHours.toFixed(1)} hrs allocated)` : ' (0 hrs)';
 
@@ -1418,13 +1327,12 @@ function openAnalysisModal(data) {
             chip.className = 'machine-chip';
             chip.innerHTML = `
                 <span class="chip-status-dot ${statusLower}"></span>
-                <strong>${m.machineName}</strong>: ${m.status}${workloadText}
+                <strong>${mName}</strong>: ${m.status}${workloadText}
             `;
             chipsContainer.appendChild(chip);
         });
     }
 
-    // Fill Analysis Table
     const tbody = document.getElementById('analysisTableBody');
     if (tbody) {
         tbody.innerHTML = '';
@@ -1434,7 +1342,7 @@ function openAnalysisModal(data) {
 
             tr.innerHTML = `
                 <td><strong>${o.orderId}</strong></td>
-                <td>${o.productName}</td>
+                <td>${o.productName || o.product_name}</td>
                 <td>${o.quantity} units</td>
                 <td><span class="badge ${o.priority === 'High' ? 'badge-danger' : o.priority === 'Medium' ? 'badge-warning' : 'badge-info'}">${o.priority}</span></td>
                 <td><span class="badge badge-info">🏭 ${o.assignedMachine}</span></td>
@@ -1459,94 +1367,100 @@ function closeAnalysisModal() {
     if (modal) modal.style.display = 'none';
 }
 
-function confirmAndSaveAnalysisOrders() {
+async function confirmAndSaveAnalysisOrders() {
     if (!currentAnalysisOrders || currentAnalysisOrders.length === 0) return;
 
-    let orders = getData('itps_orders');
-
-    currentAnalysisOrders.forEach(o => {
-        orders.push({
-            id: o.id || Date.now(),
-            orderId: o.orderId,
-            productName: o.productName,
+    try {
+        const payloadList = currentAnalysisOrders.map(o => ({
+            order_id: o.orderId,
+            product_name: o.productName || o.product_name,
             quantity: o.quantity,
             priority: o.priority,
-            deadline: o.deadline.split('T')[0] || o.deadline,
+            deadline: (o.deadline || '').split('T')[0] || o.deadline,
+            processing_time: parseFloat(o.processingTime || o.processing_time) || 0.05,
             status: 'Pending'
-        });
-    });
+        }));
 
-    saveData('itps_orders', orders);
-    addRecentActivity(`Analyzed & Added ${currentAnalysisOrders.length} order(s) to system`, 'success');
+        if (payloadList.length === 1) {
+            await apiFetch('/api/orders', {
+                method: 'POST',
+                body: JSON.stringify(payloadList[0])
+            });
+        } else {
+            await apiFetch('/api/orders/bulk', {
+                method: 'POST',
+                body: JSON.stringify(payloadList)
+            });
+        }
 
-    closeAnalysisModal();
-    resetOrderForm();
-    resetBulkCSV();
-    renderOrdersTable();
-    alert(`Successfully saved ${currentAnalysisOrders.length} order(s) to production list!`);
+        closeAnalysisModal();
+        resetOrderForm();
+        resetBulkCSV();
+        await renderOrdersTable();
+        showToast('Orders Saved', `Successfully saved ${payloadList.length} order(s) to MySQL!`, 'success');
+    } catch (err) {
+        alert('Failed to save orders: ' + err.message);
+    }
 }
 
 function analyzeBulkCSVOrders() {
     const validOrders = parsedBulkOrders.filter(o => o.isValid);
     if (validOrders.length === 0) {
-        alert('No valid orders found in CSV to analyze!');
+        alert('No valid orders found in file to analyze!');
         return;
     }
     analyzePreSchedule(validOrders);
 }
 
-function renderOrdersTable() {
-    let orders = getData('itps_orders');
+async function renderOrdersTable() {
     const tableBody = document.getElementById('ordersTableBody');
     if (!tableBody) return;
 
-    const searchVal = document.getElementById('orderSearchInput') ? document.getElementById('orderSearchInput').value.toLowerCase().trim() : '';
+    const searchVal = document.getElementById('orderSearchInput') ? document.getElementById('orderSearchInput').value.trim() : '';
     const priorityVal = document.getElementById('orderPriorityFilter') ? document.getElementById('orderPriorityFilter').value : 'All';
     const statusVal = document.getElementById('orderStatusFilter') ? document.getElementById('orderStatusFilter').value : 'All';
 
-    if (searchVal) {
-        orders = orders.filter(o => o.orderId.toLowerCase().includes(searchVal) || o.productName.toLowerCase().includes(searchVal));
+    let url = '/api/orders?';
+    if (searchVal) url += `search=${encodeURIComponent(searchVal)}&`;
+    if (priorityVal && priorityVal !== 'All') url += `priority=${encodeURIComponent(priorityVal)}&`;
+    if (statusVal && statusVal !== 'All') url += `status_filter=${encodeURIComponent(statusVal)}&`;
+
+    try {
+        const orders = await apiFetch(url);
+        tableBody.innerHTML = '';
+
+        if (orders.length === 0) {
+            tableBody.innerHTML = `<tr><td colspan="7" class="empty-placeholder">No orders match the selected search/filter criteria.</td></tr>`;
+            return;
+        }
+
+        orders.forEach((order) => {
+            let priorityBadge = 'badge-info';
+            if (order.priority === 'High') priorityBadge = 'badge-danger';
+            if (order.priority === 'Medium') priorityBadge = 'badge-warning';
+
+            let statusBadge = 'badge-warning';
+            if (order.status === 'Completed') statusBadge = 'badge-success';
+            if (order.status === 'In Progress') statusBadge = 'badge-info';
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><strong>${order.order_id}</strong></td>
+                <td>${order.product_name}</td>
+                <td>${order.quantity} units</td>
+                <td><span class="badge ${priorityBadge}">${order.priority}</span></td>
+                <td>${order.deadline}</td>
+                <td><span class="badge ${statusBadge}">${order.status}</span></td>
+                <td class="action-buttons">
+                    <button class="btn btn-secondary btn-sm" onclick="editOrder(${order.id})">Edit</button>
+                    <button class="btn btn-danger btn-sm" onclick="deleteOrder(${order.id})">Delete</button>
+                </td>
+            `;
+            tableBody.appendChild(tr);
+        });
+    } catch (err) {
+        console.error('Failed to render orders table:', err);
     }
-
-    if (priorityVal !== 'All') {
-        orders = orders.filter(o => o.priority === priorityVal);
-    }
-
-    if (statusVal !== 'All') {
-        orders = orders.filter(o => o.status === statusVal);
-    }
-
-    tableBody.innerHTML = '';
-
-    if (orders.length === 0) {
-        tableBody.innerHTML = `<tr><td colspan="7" class="empty-placeholder">No orders match the selected search/filter criteria.</td></tr>`;
-        return;
-    }
-
-    orders.forEach((order) => {
-        let priorityBadge = 'badge-info';
-        if (order.priority === 'High') priorityBadge = 'badge-danger';
-        if (order.priority === 'Medium') priorityBadge = 'badge-warning';
-
-        let statusBadge = 'badge-warning';
-        if (order.status === 'Completed') statusBadge = 'badge-success';
-        if (order.status === 'In Progress') statusBadge = 'badge-info';
-
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td><strong>${order.orderId}</strong></td>
-            <td>${order.productName}</td>
-            <td>${order.quantity} units</td>
-            <td><span class="badge ${priorityBadge}">${order.priority}</span></td>
-            <td>${order.deadline}</td>
-            <td><span class="badge ${statusBadge}">${order.status}</span></td>
-            <td class="action-buttons">
-                <button class="btn btn-secondary btn-sm" onclick="editOrder(${order.id})">Edit</button>
-                <button class="btn btn-danger btn-sm" onclick="deleteOrder(${order.id})">Delete</button>
-            </td>
-        `;
-        tableBody.appendChild(tr);
-    });
 }
 
 function setupOrderFilters() {
@@ -1564,7 +1478,7 @@ function setupOrderForm() {
     const cancelBtn = document.getElementById('cancelOrderEditBtn');
     if (!form) return;
 
-    form.addEventListener('submit', function (event) {
+    form.addEventListener('submit', async function (event) {
         event.preventDefault();
 
         const editId = document.getElementById('orderEditId').value;
@@ -1578,15 +1492,23 @@ function setupOrderForm() {
         if (isNaN(quantity) || quantity <= 0) { alert('Please enter a valid quantity.'); return; }
         if (!deadline) { alert('Please select a deadline.'); return; }
 
-        let orders = getData('itps_orders');
-
         if (editId) {
-            orders = orders.map(o => o.id == editId ? { ...o, productName, quantity, priority, deadline } : o);
-            addRecentActivity(`Updated Order #${editId}`, 'info');
-            saveData('itps_orders', orders);
-            resetOrderForm();
-            renderOrdersTable();
-            alert('Order updated successfully!');
+            try {
+                await apiFetch(`/api/orders/${editId}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({
+                        product_name: productName,
+                        quantity,
+                        priority,
+                        deadline: deadline.split('T')[0] || deadline
+                    })
+                });
+                showToast('Order Updated', `Updated Order #${editId}`, 'success');
+                resetOrderForm();
+                await renderOrdersTable();
+            } catch (err) {
+                alert('Failed to update order: ' + err.message);
+            }
         } else {
             const singleOrder = [{
                 id: Date.now(),
@@ -1605,32 +1527,36 @@ function setupOrderForm() {
     if (cancelBtn) cancelBtn.addEventListener('click', resetOrderForm);
 }
 
-function editOrder(id) {
-    const orders = getData('itps_orders');
-    const order = orders.find(o => o.id == id);
-    if (order) {
-        document.getElementById('orderEditId').value = order.id;
-        document.getElementById('orderProductSelect').value = order.productName;
-        document.getElementById('orderQuantity').value = order.quantity;
-        document.getElementById('orderPriority').value = order.priority;
-        document.getElementById('orderDeadline').value = order.deadline;
+async function editOrder(id) {
+    try {
+        const order = await apiFetch(`/api/orders/${id}`);
+        if (order) {
+            document.getElementById('orderEditId').value = order.id;
+            document.getElementById('orderProductSelect').value = order.product_name;
+            document.getElementById('orderQuantity').value = order.quantity;
+            document.getElementById('orderPriority').value = order.priority;
+            document.getElementById('orderDeadline').value = order.deadline;
 
-        document.getElementById('orderFormBtn').textContent = 'Update Order';
-        if (document.getElementById('orderFormTitle')) document.getElementById('orderFormTitle').textContent = 'Edit Production Order';
-        if (document.getElementById('cancelOrderEditBtn')) document.getElementById('cancelOrderEditBtn').style.display = 'inline-block';
-        
-        switchOrderTab('manual');
+            document.getElementById('orderFormBtn').textContent = 'Update Order';
+            if (document.getElementById('orderFormTitle')) document.getElementById('orderFormTitle').textContent = 'Edit Production Order';
+            if (document.getElementById('cancelOrderEditBtn')) document.getElementById('cancelOrderEditBtn').style.display = 'inline-block';
+            
+            switchOrderTab('manual');
+        }
+    } catch (err) {
+        alert('Could not fetch order: ' + err.message);
     }
 }
 
-function deleteOrder(id) {
+async function deleteOrder(id) {
     if (confirm('Are you sure you want to delete this order?')) {
-        let orders = getData('itps_orders');
-        const oObj = orders.find(o => o.id == id);
-        orders = orders.filter(o => o.id != id);
-        saveData('itps_orders', orders);
-        if (oObj) addRecentActivity(`Deleted Order #${oObj.orderId}`, 'danger');
-        renderOrdersTable();
+        try {
+            await apiFetch(`/api/orders/${id}`, { method: 'DELETE' });
+            showToast('Order Deleted', 'Order deleted successfully', 'success');
+            await renderOrdersTable();
+        } catch (err) {
+            alert('Failed to delete order: ' + err.message);
+        }
     }
 }
 
@@ -1638,237 +1564,183 @@ function resetOrderForm() {
     const form = document.getElementById('orderForm');
     if (form) form.reset();
     document.getElementById('orderEditId').value = '';
-    document.getElementById('orderFormBtn').textContent = 'Add Order';
-    if (document.getElementById('orderFormTitle')) document.getElementById('orderFormTitle').textContent = 'Dual Order Entry & Pre-Scheduling';
+    document.getElementById('orderFormBtn').textContent = '⚡ Add & Analyze';
+    if (document.getElementById('orderFormTitle')) document.getElementById('orderFormTitle').textContent = 'Create New Order & Live Analysis';
     if (document.getElementById('cancelOrderEditBtn')) document.getElementById('cancelOrderEditBtn').style.display = 'none';
 }
 
 
-// --- SCHEDULE PAGE ---
-function renderScheduleTable() {
-    const schedule = getData('itps_schedule');
+// ==========================================
+// SCHEDULE PAGE LOGIC
+// ==========================================
+async function renderScheduleTable() {
     const tableBody = document.getElementById('scheduleTableBody');
     if (!tableBody) return;
 
-    tableBody.innerHTML = '';
+    try {
+        const schedule = await apiFetch('/api/schedule');
+        tableBody.innerHTML = '';
 
-    if (schedule.length === 0) {
-        tableBody.innerHTML = `<tr><td colspan="7" class="empty-placeholder">No schedule generated yet. Click "Generate Best Schedule".</td></tr>`;
-        return;
+        if (schedule.length === 0) {
+            tableBody.innerHTML = `<tr><td colspan="7" class="empty-placeholder">No schedule generated yet. Click "Generate Best Schedule".</td></tr>`;
+            return;
+        }
+
+        schedule.forEach(item => {
+            let priorityBadge = 'badge-info';
+            if (item.priority === 'High') priorityBadge = 'badge-danger';
+            if (item.priority === 'Medium') priorityBadge = 'badge-warning';
+
+            let statusBadge = 'badge-success';
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><strong>${item.machine_name}</strong></td>
+                <td><span class="badge badge-info">${item.order_id}</span></td>
+                <td>${item.product_name}</td>
+                <td>${item.start_time}</td>
+                <td>${item.end_time}</td>
+                <td><span class="badge ${priorityBadge}">${item.priority}</span></td>
+                <td><span class="badge ${statusBadge}">${item.status}</span></td>
+            `;
+            tableBody.appendChild(tr);
+        });
+    } catch (err) {
+        console.error('Failed to render schedule table:', err);
     }
-
-    schedule.forEach(item => {
-        let priorityBadge = 'badge-info';
-        if (item.priority === 'High') priorityBadge = 'badge-danger';
-        if (item.priority === 'Medium') priorityBadge = 'badge-warning';
-
-        let statusBadge = 'badge-success';
-
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td><strong>${item.machineName}</strong></td>
-            <td><span class="badge badge-info">${item.orderId}</span></td>
-            <td>${item.productName}</td>
-            <td>${item.startTime}</td>
-            <td>${item.endTime}</td>
-            <td><span class="badge ${priorityBadge}">${item.priority}</span></td>
-            <td><span class="badge ${statusBadge}">${item.status}</span></td>
-        `;
-        tableBody.appendChild(tr);
-    });
 }
 
-function renderGanttTimeline() {
-    const schedule = getData('itps_schedule');
-    const machines = getData('itps_machines');
+async function renderGanttTimeline() {
     const ganttContainer = document.getElementById('ganttTimelineBody');
     if (!ganttContainer) return;
 
-    ganttContainer.innerHTML = '';
+    try {
+        const [schedule, machines] = await Promise.all([
+            apiFetch('/api/schedule'),
+            apiFetch('/api/machines')
+        ]);
 
-    if (schedule.length === 0) {
-        ganttContainer.innerHTML = `<div class="empty-placeholder">Generate schedule to view visual Gantt timeline.</div>`;
-        return;
-    }
+        ganttContainer.innerHTML = '';
 
-    machines.forEach(m => {
-        const mSchedule = schedule.filter(s => s.machineName === m.machineName);
-
-        const row = document.createElement('div');
-        row.className = 'gantt-row';
-
-        let slotContent = '';
-        if (mSchedule.length > 0) {
-            mSchedule.forEach(item => {
-                const priorityClass = item.priority ? item.priority.toLowerCase() : 'low';
-                slotContent += `<div class="gantt-bar ${priorityClass}">${item.productName} (${item.orderId})</div>`;
-            });
-        } else {
-            slotContent = `<span style="color: var(--text-muted); font-size: 12px; padding: 6px;">Idle</span>`;
+        if (schedule.length === 0) {
+            ganttContainer.innerHTML = `<div class="empty-placeholder">Generate schedule to view visual Gantt timeline.</div>`;
+            return;
         }
 
-        row.innerHTML = `
-            <div class="gantt-machine-label">${m.machineName}</div>
-            <div class="gantt-slot" style="grid-column: span 6;">
-                ${slotContent}
-            </div>
-        `;
-        ganttContainer.appendChild(row);
-    });
+        machines.forEach(m => {
+            const mName = m.machine_name || m.machineName;
+            const mSchedule = schedule.filter(s => s.machine_name === mName);
+
+            const row = document.createElement('div');
+            row.className = 'gantt-row';
+
+            let slotContent = '';
+            if (mSchedule.length > 0) {
+                mSchedule.forEach(item => {
+                    const priorityClass = item.priority ? item.priority.toLowerCase() : 'low';
+                    slotContent += `<div class="gantt-bar ${priorityClass}">${item.product_name} (${item.order_id})</div>`;
+                });
+            } else {
+                slotContent = `<span style="color: var(--text-muted); font-size: 12px; padding: 6px;">Idle</span>`;
+            }
+
+            row.innerHTML = `
+                <div class="gantt-machine-label">${mName}</div>
+                <div class="gantt-slot" style="grid-column: span 6;">
+                    ${slotContent}
+                </div>
+            `;
+            ganttContainer.appendChild(row);
+        });
+    } catch (err) {
+        console.error('Failed to render Gantt timeline:', err);
+    }
 }
 
 function setupScheduleGenerator() {
     const generateBtn = document.getElementById('generateScheduleBtn');
     if (!generateBtn) return;
 
-    generateBtn.addEventListener('click', function () {
+    generateBtn.addEventListener('click', async function () {
         const statusBox = document.getElementById('scheduleLoadingStatus');
-        if (statusBox) statusBox.style.display = 'block';
+        if (statusBox) {
+            statusBox.style.display = 'block';
+            statusBox.style.color = 'var(--primary-color)';
+            statusBox.textContent = '⏳ Analyzing orders & machine capacity in database...';
+        }
         generateBtn.disabled = true;
 
-        if (statusBox) statusBox.textContent = '⏳ Analyzing orders...';
+        try {
+            await apiFetch('/api/schedule/generate', { method: 'POST' });
 
-        setTimeout(() => {
-            if (statusBox) statusBox.textContent = '🔍 Checking machine availability...';
-            setTimeout(() => {
-                if (statusBox) statusBox.textContent = '⚙️ Generating optimal schedule...';
-                setTimeout(() => {
-                    generateSimpleSchedule();
-                    if (statusBox) {
-                        statusBox.textContent = '✅ Schedule generated successfully!';
-                        statusBox.style.color = '#16a34a';
-                    }
-                    generateBtn.disabled = false;
-                }, 600);
-            }, 600);
-        }, 600);
-    });
-}
+            if (statusBox) {
+                statusBox.textContent = '✅ Optimal schedule generated and saved to MySQL!';
+                statusBox.style.color = '#16a34a';
+            }
 
-function generateSimpleSchedule() {
-    const orders = getData('itps_orders');
-    const machines = getData('itps_machines');
-    const products = getData('itps_products');
-
-    const pendingOrders = orders.filter(o => o.status === 'Pending' || o.status === 'In Progress');
-    const availableMachines = machines.filter(m => m.status === 'Available' || m.status === 'Working');
-
-    if (pendingOrders.length === 0) {
-        alert('No pending orders available to schedule!');
-        return;
-    }
-
-    if (availableMachines.length === 0) {
-        alert('No available machines found to assign orders!');
-        return;
-    }
-
-    const priorityMap = { 'High': 3, 'Medium': 2, 'Low': 1 };
-
-    pendingOrders.sort((a, b) => {
-        const weightA = priorityMap[a.priority] || 1;
-        const weightB = priorityMap[b.priority] || 1;
-
-        if (weightA !== weightB) {
-            return weightB - weightA;
+            await renderScheduleTable();
+            await renderGanttTimeline();
+            showToast('Schedule Generated', 'Production schedule generated and saved to database.', 'success');
+        } catch (err) {
+            if (statusBox) {
+                statusBox.textContent = `❌ ${err.message}`;
+                statusBox.style.color = '#dc2626';
+            }
+            alert('Scheduling failed: ' + err.message);
+        } finally {
+            generateBtn.disabled = false;
         }
-        return new Date(a.deadline) - new Date(b.deadline);
     });
-
-    const newSchedule = [];
-    let startHour = 9;
-
-    pendingOrders.forEach((order, index) => {
-        const assignedMachine = availableMachines[index % availableMachines.length];
-        const productObj = products.find(p => p.productName === order.productName);
-
-        const durationHours = productObj ? Math.ceil(productObj.processingTime * (order.quantity / 50)) : 2;
-
-        const startTimeStr = (startHour < 10 ? '0' + startHour : startHour) + ':00';
-        const endHour = startHour + durationHours;
-        const endTimeStr = (endHour < 10 ? '0' + endHour : endHour) + ':00';
-
-        newSchedule.push({
-            id: Date.now() + index,
-            machineName: assignedMachine.machineName,
-            orderId: order.orderId,
-            productName: order.productName,
-            startTime: startTimeStr,
-            endTime: endTimeStr,
-            priority: order.priority,
-            status: 'Scheduled'
-        });
-
-        startHour += durationHours;
-    });
-
-    saveData('itps_schedule', newSchedule);
-    addRecentActivity('Generated production schedule', 'success');
-    renderScheduleTable();
-    renderGanttTimeline();
 }
 
-// --- REPORTS PAGE ---
-function renderReports() {
-    const orders = getData('itps_orders');
-    const machines = getData('itps_machines');
 
-    const totalOrders = orders.length;
-    const completedOrders = orders.filter(o => o.status === 'Completed').length;
-    const pendingOrders = orders.filter(o => o.status === 'Pending').length;
+// ==========================================
+// REPORTS PAGE LOGIC
+// ==========================================
+async function renderReports() {
+    try {
+        const reports = await apiFetch('/api/reports/summary');
 
-    const today = new Date().toISOString().split('T')[0];
-    const delayedOrders = orders.filter(o => o.deadline < today && o.status !== 'Completed').length;
+        if (document.getElementById('rptTotalOrders')) document.getElementById('rptTotalOrders').textContent = reports.totalOrders;
+        if (document.getElementById('rptCompletedOrders')) document.getElementById('rptCompletedOrders').textContent = reports.completedOrders;
+        if (document.getElementById('rptPendingOrders')) document.getElementById('rptPendingOrders').textContent = reports.pendingOrders;
+        if (document.getElementById('rptDelayedOrders')) document.getElementById('rptDelayedOrders').textContent = reports.delayedOrders;
+        if (document.getElementById('rptTotalMachines')) document.getElementById('rptTotalMachines').textContent = reports.totalMachines;
+        if (document.getElementById('rptAvailableMachines')) document.getElementById('rptAvailableMachines').textContent = reports.availableMachines;
+        if (document.getElementById('rptMachineUtilization')) document.getElementById('rptMachineUtilization').textContent = reports.machineUtilization + '%';
 
-    const totalMachines = machines.length;
-    const availableMachines = machines.filter(m => m.status === 'Available').length;
-    const workingMachines = machines.filter(m => m.status === 'Working').length;
+        const dist = reports.distribution;
+        if (document.getElementById('barCompleted')) document.getElementById('barCompleted').style.width = dist.completedPct + '%';
+        if (document.getElementById('barCompletedTxt')) document.getElementById('barCompletedTxt').textContent = dist.completedPct + '%';
 
-    const utilization = totalMachines > 0 ? Math.round((workingMachines / totalMachines) * 100) : 0;
+        if (document.getElementById('barPending')) document.getElementById('barPending').style.width = dist.pendingPct + '%';
+        if (document.getElementById('barPendingTxt')) document.getElementById('barPendingTxt').textContent = dist.pendingPct + '%';
 
-    if (document.getElementById('rptTotalOrders')) document.getElementById('rptTotalOrders').textContent = totalOrders;
-    if (document.getElementById('rptCompletedOrders')) document.getElementById('rptCompletedOrders').textContent = completedOrders;
-    if (document.getElementById('rptPendingOrders')) document.getElementById('rptPendingOrders').textContent = pendingOrders;
-    if (document.getElementById('rptDelayedOrders')) document.getElementById('rptDelayedOrders').textContent = delayedOrders;
-    if (document.getElementById('rptTotalMachines')) document.getElementById('rptTotalMachines').textContent = totalMachines;
-    if (document.getElementById('rptAvailableMachines')) document.getElementById('rptAvailableMachines').textContent = availableMachines;
-    if (document.getElementById('rptMachineUtilization')) document.getElementById('rptMachineUtilization').textContent = utilization + '%';
+        if (document.getElementById('barDelayed')) document.getElementById('barDelayed').style.width = dist.delayedPct + '%';
+        if (document.getElementById('barDelayedTxt')) document.getElementById('barDelayedTxt').textContent = dist.delayedPct + '%';
 
-    if (totalOrders > 0) {
-        const compPct = Math.round((completedOrders / totalOrders) * 100);
-        const pendPct = Math.round((pendingOrders / totalOrders) * 100);
-        const delPct = Math.round((delayedOrders / totalOrders) * 100);
+        if (document.getElementById('completionRateVal')) document.getElementById('completionRateVal').textContent = reports.completionRate;
 
-        if (document.getElementById('barCompleted')) document.getElementById('barCompleted').style.width = compPct + '%';
-        if (document.getElementById('barCompletedTxt')) document.getElementById('barCompletedTxt').textContent = compPct + '%';
-
-        if (document.getElementById('barPending')) document.getElementById('barPending').style.width = pendPct + '%';
-        if (document.getElementById('barPendingTxt')) document.getElementById('barPendingTxt').textContent = pendPct + '%';
-
-        if (document.getElementById('barDelayed')) document.getElementById('barDelayed').style.width = delPct + '%';
-        if (document.getElementById('barDelayedTxt')) document.getElementById('barDelayedTxt').textContent = delPct + '%';
-    }
-
-    const machineUsageBody = document.getElementById('rptMachineUsageBars');
-    if (machineUsageBody) {
-        machineUsageBody.innerHTML = '';
-        machines.forEach(m => {
-            let usagePct = '80%';
-            if (m.status === 'Working') usagePct = '95%';
-            if (m.status === 'Maintenance') usagePct = '0%';
-
-            const div = document.createElement('div');
-            div.style.marginBottom = '12px';
-            div.innerHTML = `
-                <div class="progress-label">
-                    <span>${m.machineName} (${m.status})</span>
-                    <span>${usagePct}</span>
-                </div>
-                <div class="progress-track">
-                    <div class="progress-fill" style="width: ${usagePct};"></div>
-                </div>
-            `;
-            machineUsageBody.appendChild(div);
-        });
+        // Machine Usage Bars
+        const machineUsageBody = document.getElementById('rptMachineUsageBars');
+        if (machineUsageBody) {
+            machineUsageBody.innerHTML = '';
+            reports.machineUsage.forEach(m => {
+                const div = document.createElement('div');
+                div.style.marginBottom = '12px';
+                div.innerHTML = `
+                    <div class="progress-label">
+                        <span>${m.machineName} (${m.status})</span>
+                        <span>${m.usagePct}</span>
+                    </div>
+                    <div class="progress-track">
+                        <div class="progress-fill" style="width: ${m.usagePct};"></div>
+                    </div>
+                `;
+                machineUsageBody.appendChild(div);
+            });
+        }
+    } catch (err) {
+        console.error('Failed to render reports:', err);
     }
 }

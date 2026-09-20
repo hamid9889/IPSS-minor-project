@@ -1,0 +1,18 @@
+# Environment variables
+.env
+backend/.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+env/
+venv/
+*.egg-info/
+
+# IDE / OS
+.vscode/
+.idea/
+Thumbs.db

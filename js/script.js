@@ -782,6 +782,13 @@ async function editProduct(id) {
             document.getElementById('formSubmitBtn').textContent = 'Update Product Master';
             if (document.getElementById('productFormTitle')) document.getElementById('productFormTitle').textContent = 'Edit Product Master';
             if (document.getElementById('cancelProductEditBtn')) document.getElementById('cancelProductEditBtn').style.display = 'inline-block';
+
+            const formCard = document.getElementById('productForm') ? document.getElementById('productForm').closest('.card') : null;
+            if (formCard) {
+                formCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                formCard.style.boxShadow = '0 0 0 3px var(--primary-color, #2563eb)';
+                setTimeout(() => { formCard.style.boxShadow = ''; }, 2000);
+            }
         }
     } catch (err) {
         alert('Could not fetch product details: ' + err.message);
@@ -913,6 +920,13 @@ async function editMachine(id) {
             document.getElementById('machineFormBtn').textContent = 'Update Machine';
             if (document.getElementById('machineFormTitle')) document.getElementById('machineFormTitle').textContent = 'Edit Machine';
             if (document.getElementById('cancelMachineEditBtn')) document.getElementById('cancelMachineEditBtn').style.display = 'inline-block';
+
+            const formCard = document.getElementById('machineForm') ? document.getElementById('machineForm').closest('.card') : null;
+            if (formCard) {
+                formCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                formCard.style.boxShadow = '0 0 0 3px var(--primary-color, #2563eb)';
+                setTimeout(() => { formCard.style.boxShadow = ''; }, 2000);
+            }
         }
     } catch (err) {
         alert('Could not fetch machine details: ' + err.message);
@@ -1452,8 +1466,8 @@ async function renderOrdersTable() {
                 <td>${order.deadline}</td>
                 <td><span class="badge ${statusBadge}">${order.status}</span></td>
                 <td class="action-buttons">
-                    <button class="btn btn-secondary btn-sm" onclick="editOrder(${order.id})">Edit</button>
-                    <button class="btn btn-danger btn-sm" onclick="deleteOrder(${order.id})">Delete</button>
+                    <button class="btn btn-secondary btn-sm" onclick="editOrder('${order.id}')" title="Edit Order">✏️ Edit</button>
+                    <button class="btn btn-danger btn-sm" onclick="openDeleteOrderModal('${order.id}', '${order.order_id}')" title="Delete Order">🗑️ Delete</button>
                 </td>
             `;
             tableBody.appendChild(tr);
@@ -1494,19 +1508,26 @@ function setupOrderForm() {
 
         if (editId) {
             try {
+                const statusSelect = document.getElementById('orderStatus');
+                const statusVal = statusSelect ? statusSelect.value : 'Pending';
+                const formattedDeadline = deadline.split('T')[0] || deadline;
+
                 await apiFetch(`/api/orders/${editId}`, {
                     method: 'PUT',
                     body: JSON.stringify({
                         product_name: productName,
                         quantity,
                         priority,
-                        deadline: deadline.split('T')[0] || deadline
+                        deadline: formattedDeadline,
+                        status: statusVal
                     })
                 });
-                showToast('Order Updated', `Updated Order #${editId}`, 'success');
+
+                showToast('Order Updated', `Successfully updated Order #${editId}`, 'success');
                 resetOrderForm();
                 await renderOrdersTable();
             } catch (err) {
+                showToast('Update Failed', err.message, 'error');
                 alert('Failed to update order: ' + err.message);
             }
         } else {
@@ -1535,29 +1556,89 @@ async function editOrder(id) {
             document.getElementById('orderProductSelect').value = order.product_name;
             document.getElementById('orderQuantity').value = order.quantity;
             document.getElementById('orderPriority').value = order.priority;
-            document.getElementById('orderDeadline').value = order.deadline;
 
-            document.getElementById('orderFormBtn').textContent = 'Update Order';
-            if (document.getElementById('orderFormTitle')) document.getElementById('orderFormTitle').textContent = 'Edit Production Order';
-            if (document.getElementById('cancelOrderEditBtn')) document.getElementById('cancelOrderEditBtn').style.display = 'inline-block';
-            
-            switchOrderTab('manual');
+            const deadlineInput = document.getElementById('orderDeadline');
+            if (deadlineInput) {
+                const rawDate = (order.deadline || '').split('T')[0];
+                if (deadlineInput.type === 'date') {
+                    deadlineInput.value = rawDate;
+                } else {
+                    deadlineInput.value = rawDate ? `${rawDate}T09:00` : '';
+                }
+            }
+
+            const statusGroup = document.getElementById('orderStatusGroup');
+            const statusSelect = document.getElementById('orderStatus');
+            if (statusGroup && statusSelect) {
+                statusGroup.style.display = 'block';
+                statusSelect.value = order.status || 'Pending';
+            }
+
+            document.getElementById('orderFormBtn').textContent = '💾 Update Order';
+            if (document.getElementById('orderFormTitle')) {
+                document.getElementById('orderFormTitle').textContent = `✏️ Edit Production Order: #${order.order_id}`;
+            }
+            if (document.getElementById('cancelOrderEditBtn')) {
+                document.getElementById('cancelOrderEditBtn').style.display = 'inline-block';
+            }
+
+            // Smoothly scroll to the form card and highlight it
+            const formCard = document.getElementById('orderForm') ? document.getElementById('orderForm').closest('.card') : null;
+            if (formCard) {
+                formCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                formCard.style.boxShadow = '0 0 0 3px var(--primary-color, #2563eb)';
+                setTimeout(() => { formCard.style.boxShadow = ''; }, 2000);
+            }
+
+            showToast('Editing Order', `Loaded Order #${order.order_id} into form`, 'info');
         }
     } catch (err) {
-        alert('Could not fetch order: ' + err.message);
+        showToast('Error', 'Could not fetch order: ' + err.message, 'error');
+    }
+}
+
+let pendingDeleteOrderId = null;
+
+function openDeleteOrderModal(id, orderCode) {
+    pendingDeleteOrderId = id;
+    const modal = document.getElementById('deleteOrderModal');
+    const codeEl = document.getElementById('deleteOrderCode');
+    if (codeEl) codeEl.textContent = orderCode || `#${id}`;
+    if (modal) {
+        modal.style.display = 'flex';
+    } else {
+        if (confirm(`Are you sure you want to delete order ${orderCode || '#' + id}?`)) {
+            executeDeleteOrder(id);
+        }
+    }
+}
+
+function closeDeleteOrderModal() {
+    pendingDeleteOrderId = null;
+    const modal = document.getElementById('deleteOrderModal');
+    if (modal) modal.style.display = 'none';
+}
+
+async function confirmDeleteOrder() {
+    if (!pendingDeleteOrderId) return;
+    const idToDelete = pendingDeleteOrderId;
+    closeDeleteOrderModal();
+    await executeDeleteOrder(idToDelete);
+}
+
+async function executeDeleteOrder(id) {
+    try {
+        await apiFetch(`/api/orders/${id}`, { method: 'DELETE' });
+        showToast('Order Deleted', `Order was deleted successfully from database.`, 'success');
+        await renderOrdersTable();
+    } catch (err) {
+        showToast('Delete Failed', err.message, 'error');
+        alert('Failed to delete order: ' + err.message);
     }
 }
 
 async function deleteOrder(id) {
-    if (confirm('Are you sure you want to delete this order?')) {
-        try {
-            await apiFetch(`/api/orders/${id}`, { method: 'DELETE' });
-            showToast('Order Deleted', 'Order deleted successfully', 'success');
-            await renderOrdersTable();
-        } catch (err) {
-            alert('Failed to delete order: ' + err.message);
-        }
-    }
+    openDeleteOrderModal(id, `#${id}`);
 }
 
 function resetOrderForm() {
@@ -1565,8 +1646,14 @@ function resetOrderForm() {
     if (form) form.reset();
     document.getElementById('orderEditId').value = '';
     document.getElementById('orderFormBtn').textContent = '⚡ Add & Analyze';
-    if (document.getElementById('orderFormTitle')) document.getElementById('orderFormTitle').textContent = 'Create New Order & Live Analysis';
-    if (document.getElementById('cancelOrderEditBtn')) document.getElementById('cancelOrderEditBtn').style.display = 'none';
+    if (document.getElementById('orderFormTitle')) {
+        document.getElementById('orderFormTitle').textContent = 'Create New Order & Live Analysis';
+    }
+    if (document.getElementById('cancelOrderEditBtn')) {
+        document.getElementById('cancelOrderEditBtn').style.display = 'none';
+    }
+    const statusGroup = document.getElementById('orderStatusGroup');
+    if (statusGroup) statusGroup.style.display = 'none';
 }
 
 
@@ -1596,7 +1683,7 @@ async function renderScheduleTable() {
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td><strong>${item.machine_name}</strong></td>
-                <td><span class="badge badge-info">${item.order_id}</span></td>
+                <td><span class="badge badge-info">${item.order_code || item.order_id}</span></td>
                 <td>${item.product_name}</td>
                 <td>${item.start_time}</td>
                 <td>${item.end_time}</td>
@@ -1638,7 +1725,8 @@ async function renderGanttTimeline() {
             if (mSchedule.length > 0) {
                 mSchedule.forEach(item => {
                     const priorityClass = item.priority ? item.priority.toLowerCase() : 'low';
-                    slotContent += `<div class="gantt-bar ${priorityClass}">${item.product_name} (${item.order_id})</div>`;
+                    const orderDisplay = item.order_code || item.order_id;
+                    slotContent += `<div class="gantt-bar ${priorityClass}">${item.product_name} (${orderDisplay})</div>`;
                 });
             } else {
                 slotContent = `<span style="color: var(--text-muted); font-size: 12px; padding: 6px;">Idle</span>`;

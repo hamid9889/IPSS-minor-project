@@ -3,18 +3,48 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from backend.database import get_db
-from backend.models import Schedule, Order, Machine, Product, Activity, User
-from backend.schemas import ScheduleOut
+from backend.models import Schedule, Order, Machine, Activity, User
+from backend.schemas import ScheduleCreate, ScheduleUpdate, ScheduleOut
 from backend.auth import get_current_user, require_admin
 
-router = APIRouter(prefix="/api/schedule", tags=["Scheduling"])
+router = APIRouter(tags=["Scheduling"])
+
 
 @router.get("", response_model=List[ScheduleOut])
-def get_schedule(
+def get_schedules(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     return db.query(Schedule).order_by(Schedule.id.asc()).all()
+
+
+@router.post("", response_model=ScheduleOut, status_code=status.HTTP_201_CREATED)
+def create_schedule(
+    data: ScheduleCreate,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin)
+):
+    machine = db.query(Machine).filter(Machine.id == data.machine_id).first()
+    if not machine:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Machine not found")
+
+    order = db.query(Order).filter(Order.id == data.order_id).first()
+    if not order:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
+
+    new_schedule = Schedule(
+        machine_id=data.machine_id,
+        order_id=data.order_id,
+        start_time=data.start_time,
+        end_time=data.end_time,
+        priority=data.priority or order.priority or "Medium",
+        status=data.status or "Scheduled"
+    )
+    db.add(new_schedule)
+    db.commit()
+    db.refresh(new_schedule)
+    return new_schedule
+
 
 @router.post("/generate", response_model=List[ScheduleOut])
 def generate_schedule(
@@ -57,13 +87,12 @@ def generate_schedule(
     db.query(Schedule).delete()
 
     # 5. Allocate orders to machines round-robin
-    products = {p.product_name: p for p in db.query(Product).all()}
     new_schedules = []
     start_hour = 9
 
     for i, order in enumerate(sorted_orders):
         assigned_machine = machines[i % len(machines)]
-        product = products.get(order.product_name)
+        product = order.product
 
         if product:
             duration_hours = max(1, math.ceil(product.processing_time * (order.quantity / 50.0)))
@@ -75,11 +104,8 @@ def generate_schedule(
         end_time_str = f"{end_hour:02d}:00"
 
         schedule_item = Schedule(
-            machine_name=assigned_machine.machine_name,
             machine_id=assigned_machine.id,
-            order_id=order.order_id,
-            order_fk=order.id,
-            product_name=order.product_name,
+            order_id=order.id,
             start_time=start_time_str,
             end_time=end_time_str,
             priority=order.priority,
@@ -90,7 +116,6 @@ def generate_schedule(
 
         start_hour += duration_hours
 
-    # Log activity
     activity = Activity(
         text="Generated production schedule",
         activity_type="success"
@@ -103,10 +128,11 @@ def generate_schedule(
 
     return new_schedules
 
+
 @router.put("/{schedule_id}", response_model=ScheduleOut)
 def update_schedule(
     schedule_id: int,
-    status_val: str,
+    data: ScheduleUpdate,
     db: Session = Depends(get_db),
     admin: User = Depends(require_admin)
 ):
@@ -114,7 +140,44 @@ def update_schedule(
     if not schedule:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Schedule entry not found")
 
-    schedule.status = status_val
+    if data.machine_id is not None:
+        schedule.machine_id = data.machine_id
+    if data.order_id is not None:
+        schedule.order_id = data.order_id
+    if data.start_time is not None:
+        schedule.start_time = data.start_time
+    if data.end_time is not None:
+        schedule.end_time = data.end_time
+    if data.priority is not None:
+        schedule.priority = data.priority
+    if data.status is not None:
+        schedule.status = data.status
+
     db.commit()
     db.refresh(schedule)
     return schedule
+
+
+@router.delete("/{schedule_id}")
+def delete_schedule(
+    schedule_id: int,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin)
+):
+    schedule = db.query(Schedule).filter(Schedule.id == schedule_id).first()
+    if not schedule:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Schedule entry not found")
+
+    db.delete(schedule)
+    db.commit()
+    return {"message": "Schedule entry deleted successfully"}
+
+
+@router.delete("/clear")
+def clear_schedules(
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin)
+):
+    db.query(Schedule).delete()
+    db.commit()
+    return {"message": "All schedule entries cleared"}

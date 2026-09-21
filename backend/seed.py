@@ -7,7 +7,7 @@ def seed_database():
     db = SessionLocal()
 
     try:
-        # 1. Seed Users if not present
+        # 1. Seed Users
         admin_user = db.query(User).filter(User.username == "admin").first()
         if not admin_user:
             admin_user = User(
@@ -74,10 +74,10 @@ def seed_database():
             admin = db.query(User).filter(User.username == "admin").first()
 
             default_orders = [
-                Order(order_id="ORD-101", product_name="Laptop Assembly", product_id=prod_map.get("Laptop Assembly"), quantity=50, priority="High", deadline="2026-08-20", status="Pending", user_id=admin.id if admin else None),
-                Order(order_id="ORD-102", product_name="Mouse Housing", product_id=prod_map.get("Mouse Housing"), quantity=100, priority="Medium", deadline="2026-08-22", status="Pending", user_id=admin.id if admin else None),
-                Order(order_id="ORD-103", product_name="Motor Shaft", product_id=prod_map.get("Motor Shaft"), quantity=30, priority="Low", deadline="2026-08-25", status="Completed", user_id=admin.id if admin else None),
-                Order(order_id="ORD-104", product_name="Control Panel Unit", product_id=prod_map.get("Control Panel Unit"), quantity=20, priority="High", deadline="2026-08-18", status="Pending", user_id=admin.id if admin else None)
+                Order(order_id="ORD-101", product_id=prod_map.get("Laptop Assembly"), quantity=50, priority="High", deadline="2026-08-20", status="Pending", user_id=admin.id if admin else None),
+                Order(order_id="ORD-102", product_id=prod_map.get("Mouse Housing"), quantity=100, priority="Medium", deadline="2026-08-22", status="Pending", user_id=admin.id if admin else None),
+                Order(order_id="ORD-103", product_id=prod_map.get("Motor Shaft"), quantity=30, priority="Low", deadline="2026-08-25", status="Completed", user_id=admin.id if admin else None),
+                Order(order_id="ORD-104", product_id=prod_map.get("Control Panel Unit"), quantity=20, priority="High", deadline="2026-08-18", status="Pending", user_id=admin.id if admin else None)
             ]
             db.add_all(default_orders)
             db.commit()
@@ -88,8 +88,8 @@ def seed_database():
             ord_map = {o.order_id: o.id for o in db.query(Order).all()}
 
             default_schedules = [
-                Schedule(machine_name="M-01", machine_id=mach_map.get("M-01"), order_id="ORD-101", order_fk=ord_map.get("ORD-101"), product_name="Laptop Assembly", start_time="09:00", end_time="11:00", priority="High", status="Scheduled"),
-                Schedule(machine_name="M-02", machine_id=mach_map.get("M-02"), order_id="ORD-102", order_fk=ord_map.get("ORD-102"), product_name="Mouse Housing", start_time="09:00", end_time="10:30", priority="Medium", status="Scheduled")
+                Schedule(machine_id=mach_map.get("M-01"), order_id=ord_map.get("ORD-101"), start_time="09:00", end_time="11:00", priority="High", status="Scheduled"),
+                Schedule(machine_id=mach_map.get("M-02"), order_id=ord_map.get("ORD-102"), start_time="09:00", end_time="10:30", priority="Medium", status="Scheduled")
             ]
             db.add_all(default_schedules)
             db.commit()

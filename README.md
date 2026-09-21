@@ -1,33 +1,36 @@
 # ⚙️ IPSS — Intelligent Product Scheduling System
 
-> **A professional, full-stack manufacturing floor scheduling, real-time machine monitoring, and predictive analytics platform built with vanilla HTML5/CSS3/JavaScript frontend and a human-written Python (FastAPI + SQLAlchemy + MySQL) backend.**
+> **Full-stack manufacturing floor scheduling, real-time machine monitoring, and predictive analytics platform built with vanilla HTML5/CSS3/JavaScript frontend, Python (FastAPI + SQLAlchemy) backend, and MySQL database.**
 
 ---
 
-## 📁 System Architecture & Project Organization
+## 📁 Project Architecture
 
 ```text
 monir/
 │
+├── database/
+│   └── schema.sql           # 🗄️ MySQL database schema & table definitions
+│
 ├── backend/
-│   ├── main.py              # 🚀 FastAPI application, CORS & static frontend hosting
-│   ├── database.py          # 🗄️ SQLAlchemy MySQL engine & session provider
-│   ├── models.py            # 📊 Relational database models (Users, Products, Machines, Orders, Schedules, Activities)
-│   ├── schemas.py           # 🛡️ Pydantic validation schemas
-│   ├── auth.py              # 🔐 JWT creation, bcrypt password hashing & RBAC dependencies
+│   ├── main.py              # 🚀 FastAPI application entry point & static file hosting
+│   ├── database.py          # 🔌 SQLAlchemy database connection & session maker
+│   ├── models.py            # 📊 Relational models (Users, Products, Machines, Orders, Schedules, Activities)
+│   ├── schemas.py           # 🛡️ Pydantic validation & response schemas
+│   ├── auth.py              # 🔐 JWT authentication, bcrypt password hashing & RBAC
 │   ├── seed.py              # 🌱 Initial database seeder for demo accounts & master data
 │   │
 │   ├── routes/
-│   │   ├── auth.py          # /api/auth: login, register, me, profile
-│   │   ├── products.py      # /api/products: CRUD operations + RBAC checks
-│   │   ├── machines.py      # /api/machines: CRUD operations + RBAC checks
-│   │   ├── orders.py        # /api/orders: CRUD operations, bulk import & filtering
-│   │   ├── schedules.py     # /api/schedule: generation engine & timeline
-│   │   └── reports.py       # /api/reports & /api/dashboard: real MySQL aggregated metrics
+│   │   ├── auth.py          # /api/auth: Login, profile, and current user
+│   │   ├── products.py      # /api/products: CRUD for products catalog
+│   │   ├── machines.py      # /api/machines: CRUD for machines registry
+│   │   ├── orders.py        # /api/orders: CRUD, filtering, and bulk import
+│   │   ├── schedules.py     # /api/schedules: Gantt timeline & auto-scheduler
+│   │   └── reports.py       # /api/reports & /api/dashboard: Real-time MySQL metrics
 │   │
-│   ├── requirements.txt     # 📦 Minimal, reliable Python dependencies
-│   ├── .env                 # 🔑 Database connection & JWT Secret configuration
-│   └── .gitignore           # 🚫 Ignore virtual environments and .env
+│   ├── requirements.txt     # 📦 Python dependencies
+│   ├── .env                 # 🔑 Database URL & JWT secret configuration
+│   └── .env.example         # 📝 Example environment configuration
 │
 ├── index.html               # 🌐 Landing page & system introduction
 ├── login.html               # 🔐 Dual-role authentication portal (Admin / Operator)
@@ -46,36 +49,28 @@ monir/
 ├── js/
 │   └── script.js            # ⚡ Dynamic REST API integration, RBAC guards & reactive UI
 │
-├── images/                  # 📁 Static assets & favicon
-├── .gitignore               # 🚫 Git ignore rules
+├── .env.example             # 📝 Root environment example
 └── README.md                # 📖 System documentation & setup guide
 ```
 
 ---
 
-## 🛠️ Technology Stack
+## 🗄️ Relational Database Structure (MySQL)
 
-- **Frontend**: Vanilla HTML5, Modern CSS3 (Glassmorphism, Dark/Light mode), Modern JavaScript (ES6+ `async/await` and `fetch`).
-- **Backend**: Python 3, FastAPI, Pydantic, PyJWT, Bcrypt.
-- **Database**: MySQL 8.0 with SQLAlchemy ORM and PyMySQL.
-- **Interactive Documentation**: Swagger UI automatically available at `http://localhost:8000/docs`.
+All application data is stored in MySQL (`ipss_db`). The relational design uses clean foreign keys without duplicate columns:
 
----
+* **users → orders**: `orders.user_id` references `users.id` (tracks which user created the order)
+* **products → orders**: `orders.product_id` references `products.id` (`ON DELETE CASCADE`)
+* **orders → schedules**: `schedules.order_id` references `orders.id` (`ON DELETE CASCADE`)
+* **machines → schedules**: `schedules.machine_id` references `machines.id` (`ON DELETE CASCADE`)
 
-## 🛡️ Role-Based Access Control (RBAC)
-
-The system strictly enforces permissions on both the client (UI routing and element hiding) and the server (FastAPI dependencies):
-
-| Module / API | 🛡️ Administrator (`ADMIN`) | 👤 Floor Operator (`OPERATOR`) |
-| :--- | :---: | :---: |
-| **Landing & Login** | ✅ Full Access | ✅ Full Access |
-| **Dashboard** | ✅ Full Access | ✅ View Only |
-| **Products Catalog** | ✅ Add / Edit / Delete Products | 👁️ View Only Mode (Form Hidden) |
-| **Machines Registry** | ✅ Full Access | ⛔ 403 Forbidden (Blocked) |
-| **Production Orders** | ✅ Create / Edit / Delete / Bulk Upload | ⛔ 403 Forbidden (Blocked) |
-| **Automated Scheduler** | ✅ Generate Schedule / Edit Gantt | ⛔ 403 Forbidden (Blocked) |
-| **Production Reports** | ✅ View Live Metrics | ✅ View Live Metrics |
-| **User Profile** | ✅ View & Edit Own Profile | ✅ View & Edit Own Profile |
+### Tables Overview:
+1. `users` — User credentials (bcrypt hashed), roles (`ADMIN`, `OPERATOR`), and profile details.
+2. `products` — Master manufactured catalog items, unit processing time, preferred production lines.
+3. `machines` — Factory equipment, capacity (units/day), and status (`Available`, `Working`, `Maintenance`).
+4. `orders` — Production batch requests, quantities, deadlines, priorities (`High`, `Medium`, `Low`), and status.
+5. `schedules` — Optimized timeline allocations with `start_time`, `end_time`, `priority`, and status.
+6. `activities` — Real-time event and audit log entries.
 
 ---
 
@@ -83,42 +78,74 @@ The system strictly enforces permissions on both the client (UI routing and elem
 
 | Role | Username / Email | Password | Access Privileges |
 | :--- | :--- | :--- | :--- |
-| **Administrator** | `admin` or `admin@ipss.com` | `admin123` | Full plant management & configuration |
+| **Administrator** | `admin` or `admin@ipss.com` | `admin123` | Full plant management, CRUD & scheduling |
 | **Floor Operator** | `user` or `user@ipss.com` | `user123` | Dashboard, Products (View Only), Reports, Profile |
 
 ---
 
-## 🚀 How to Run the Application
+## 🚀 Setup & Run Instructions
 
-### 1. Database Configuration
-Ensure MySQL Server is running.
-Create the database and configure credentials in `backend/.env`:
+### 1. Start MySQL Server
+Make sure your local MySQL server is running:
+- **Windows (Services):** Open **Services**, locate `MySQL80`, and ensure status is **Running**.
+- **Or via Command Prompt / PowerShell:**
+  ```powershell
+  Start-Service MySQL80
+  ```
+
+### 2. Configure Environment Variables
+Copy `.env.example` to `backend/.env` (and `.env` in the root folder):
 ```env
 DATABASE_URL=mysql+pymysql://root:YOUR_PASSWORD@localhost:3306/ipss_db
 SECRET_KEY=ipss_jwt_production_secret_key_9889_floor_system
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=1440
 ```
+Replace `YOUR_PASSWORD` with your actual MySQL `root` password.
 
-### 2. Install Python Dependencies
-```bash
-pip install -r backend/requirements.txt
-```
+### 3. Initialize the Database
+You can create the tables and seed default data using either method:
 
-### 3. Initialize & Seed Database
-Run the seed script once to automatically create all tables and populate default demo users and data:
+**Option A — Automated Seeder (Recommended):**
 ```bash
 python -m backend.seed
 ```
 
-### 4. Start the Application
-Run the FastAPI development server:
+**Option B — MySQL Schema Import:**
 ```bash
-python -m uvicorn backend.main.py:app --reload --port 8000
-# Or:
-python -m uvicorn backend.main:app --port 8000
+mysql -u root -p ipss_db < database/schema.sql
+python -m backend.seed
 ```
 
-### 5. Access the Platform
+### 4. Install Python Dependencies
+```bash
+pip install -r backend/requirements.txt
+```
+
+### 5. Start the FastAPI Backend
+```bash
+python -m uvicorn backend.main:app --reload --port 8000
+```
+
+### 6. Open the Application
 - **Application Portal:** [http://localhost:8000/index.html](http://localhost:8000/index.html) or [http://localhost:8000/login.html](http://localhost:8000/login.html)
 - **Interactive Swagger API Docs:** [http://localhost:8000/docs](http://localhost:8000/docs)
+
+---
+
+## 🔍 How to View Data in MySQL Workbench
+
+1. Open **MySQL Workbench**.
+2. Connect to your local MySQL instance (port `3306`, user `root`).
+3. Open a new SQL tab and run:
+   ```sql
+   USE ipss_db;
+
+   SELECT * FROM users;
+   SELECT * FROM products;
+   SELECT * FROM machines;
+   SELECT * FROM orders;
+   SELECT * FROM schedules;
+   SELECT * FROM activities;
+   ```
+4. Execute the query to view the live records persisted by the application.

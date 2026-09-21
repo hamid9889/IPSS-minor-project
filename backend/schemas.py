@@ -1,6 +1,7 @@
 from datetime import datetime
-from typing import Optional, List
-from pydantic import BaseModel
+from typing import Optional
+from pydantic import BaseModel, ConfigDict
+
 
 # --- Auth & User Schemas ---
 class UserRegister(BaseModel):
@@ -17,9 +18,11 @@ class UserRegister(BaseModel):
     gender: Optional[str] = "Male"
     address: Optional[str] = ""
 
+
 class UserLogin(BaseModel):
     username: str
     password: str
+
 
 class UserProfileUpdate(BaseModel):
     full_name: Optional[str] = None
@@ -29,7 +32,10 @@ class UserProfileUpdate(BaseModel):
     gender: Optional[str] = None
     address: Optional[str] = None
 
+
 class UserOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     username: str
     email: str
@@ -44,8 +50,6 @@ class UserOut(BaseModel):
     address: Optional[str] = ""
     created_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
 
 class Token(BaseModel):
     access_token: str
@@ -60,8 +64,10 @@ class ProductBase(BaseModel):
     processing_time: float
     preferred_line: Optional[str] = "All Machines"
 
+
 class ProductCreate(ProductBase):
     pass
+
 
 class ProductUpdate(BaseModel):
     product_name: Optional[str] = None
@@ -69,12 +75,12 @@ class ProductUpdate(BaseModel):
     processing_time: Optional[float] = None
     preferred_line: Optional[str] = None
 
+
 class ProductOut(ProductBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     created_at: Optional[datetime] = None
-
-    class Config:
-        from_attributes = True
 
 
 # --- Machine Schemas ---
@@ -83,20 +89,22 @@ class MachineBase(BaseModel):
     capacity: int
     status: Optional[str] = "Available"
 
+
 class MachineCreate(MachineBase):
     pass
+
 
 class MachineUpdate(BaseModel):
     machine_name: Optional[str] = None
     capacity: Optional[int] = None
     status: Optional[str] = None
 
+
 class MachineOut(MachineBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     created_at: Optional[datetime] = None
-
-    class Config:
-        from_attributes = True
 
 
 # --- Order Schemas ---
@@ -109,8 +117,10 @@ class OrderBase(BaseModel):
     processing_time: Optional[float] = 0.05
     status: Optional[str] = "Pending"
 
+
 class OrderCreate(OrderBase):
     pass
+
 
 class OrderUpdate(BaseModel):
     product_name: Optional[str] = None
@@ -119,11 +129,14 @@ class OrderUpdate(BaseModel):
     deadline: Optional[str] = None
     status: Optional[str] = None
 
+
 class OrderOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     order_id: str
+    product_id: int
     product_name: str
-    product_id: Optional[int] = None
     quantity: int
     priority: str
     deadline: str
@@ -132,32 +145,47 @@ class OrderOut(BaseModel):
     user_id: Optional[int] = None
     created_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
-
 
 # --- Schedule Schemas ---
+class ScheduleCreate(BaseModel):
+    machine_id: int
+    order_id: int
+    start_time: str
+    end_time: str
+    priority: Optional[str] = "Medium"
+    status: Optional[str] = "Scheduled"
+
+
+class ScheduleUpdate(BaseModel):
+    machine_id: Optional[int] = None
+    order_id: Optional[int] = None
+    start_time: Optional[str] = None
+    end_time: Optional[str] = None
+    priority: Optional[str] = None
+    status: Optional[str] = None
+
+
 class ScheduleOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
-    machine_name: str
-    order_id: str
-    product_name: str
+    machine_id: int
+    order_id: int
+    order_code: Optional[str] = ""
+    machine_name: Optional[str] = ""
+    product_name: Optional[str] = ""
     start_time: str
     end_time: str
     priority: str
     status: str
     created_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
-
 
 # --- Activity Schema ---
 class ActivityOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     text: str
     activity_type: str
     created_at: Optional[datetime] = None
-
-    class Config:
-        from_attributes = True

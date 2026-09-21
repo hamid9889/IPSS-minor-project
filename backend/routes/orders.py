@@ -6,9 +6,10 @@ from sqlalchemy.orm import Session
 from backend.database import get_db
 from backend.models import Order, Product, Activity, User
 from backend.schemas import OrderCreate, OrderUpdate, OrderOut
-from backend.auth import get_current_user, require_admin
+from backend.auth import require_admin
 
 router = APIRouter(prefix="/api/orders", tags=["Orders"])
+
 
 def generate_unique_order_id(db: Session) -> str:
     while True:
@@ -16,6 +17,17 @@ def generate_unique_order_id(db: Session) -> str:
         existing = db.query(Order).filter(Order.order_id == candidate).first()
         if not existing:
             return candidate
+
+
+def find_order(db: Session, identifier: str) -> Optional[Order]:
+    """Find order by either database integer ID or string order_id code (e.g. ORD-101)."""
+    clean_id = str(identifier).strip()
+    if clean_id.isdigit():
+        order = db.query(Order).filter(Order.id == int(clean_id)).first()
+        if order:
+            return order
+    return db.query(Order).filter(Order.order_id == clean_id).first()
+
 
 @router.get("", response_model=List[OrderOut])
 def get_orders(
@@ -25,13 +37,13 @@ def get_orders(
     db: Session = Depends(get_db),
     admin: User = Depends(require_admin)
 ):
-    query = db.query(Order)
+    query = db.query(Order).join(Product, Order.product_id == Product.id, isouter=True)
 
     if search:
         pattern = f"%{search.strip().lower()}%"
         query = query.filter(
             (Order.order_id.ilike(pattern)) | 
-            (Order.product_name.ilike(pattern))
+            (Product.product_name.ilike(pattern))
         )
 
     if priority and priority != "All":
@@ -46,16 +58,18 @@ def get_orders(
 
     return query.order_by(Order.id.desc()).all()
 
+
 @router.get("/{order_id}", response_model=OrderOut)
 def get_order(
-    order_id: int,
+    order_id: str,
     db: Session = Depends(get_db),
     admin: User = Depends(require_admin)
 ):
-    order = db.query(Order).filter(Order.id == order_id).first()
+    order = find_order(db, order_id)
     if not order:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
     return order
+
 
 @router.post("", response_model=OrderOut, status_code=status.HTTP_201_CREATED)
 def create_order(
@@ -73,15 +87,24 @@ def create_order(
             detail=f"Order ID '{order_id}' already exists"
         )
 
-    # Link product if exists
-    product = db.query(Product).filter(Product.product_name == order_data.product_name.strip()).first()
-    product_id = product.id if product else None
-    proc_time = order_data.processing_time or (product.processing_time if product else 0.05)
+    # Find or auto-create product
+    p_name = order_data.product_name.strip()
+    product = db.query(Product).filter(Product.product_name == p_name).first()
+    if not product:
+        product = Product(
+            product_name=p_name,
+            category="General",
+            processing_time=order_data.processing_time or 0.05,
+            preferred_line="All Machines"
+        )
+        db.add(product)
+        db.flush()
+
+    proc_time = order_data.processing_time or product.processing_time or 0.05
 
     new_order = Order(
         order_id=order_id,
-        product_name=order_data.product_name.strip(),
-        product_id=product_id,
+        product_id=product.id,
         quantity=order_data.quantity,
         priority=order_data.priority or "Medium",
         deadline=order_data.deadline.strip(),
@@ -101,6 +124,7 @@ def create_order(
     db.refresh(new_order)
     return new_order
 
+
 @router.post("/bulk", response_model=List[OrderOut], status_code=status.HTTP_201_CREATED)
 def create_bulk_orders(
     orders_data: List[OrderCreate],
@@ -113,19 +137,26 @@ def create_bulk_orders(
     created_orders = []
     for item in orders_data:
         order_id = item.order_id.strip() if item.order_id else generate_unique_order_id(db)
-        
-        # Check duplicate
         if db.query(Order).filter(Order.order_id == order_id).first():
             order_id = generate_unique_order_id(db)
 
-        product = db.query(Product).filter(Product.product_name == item.product_name.strip()).first()
-        product_id = product.id if product else None
-        proc_time = item.processing_time or (product.processing_time if product else 0.05)
+        p_name = item.product_name.strip()
+        product = db.query(Product).filter(Product.product_name == p_name).first()
+        if not product:
+            product = Product(
+                product_name=p_name,
+                category="General",
+                processing_time=item.processing_time or 0.05,
+                preferred_line="All Machines"
+            )
+            db.add(product)
+            db.flush()
+
+        proc_time = item.processing_time or product.processing_time or 0.05
 
         order = Order(
             order_id=order_id,
-            product_name=item.product_name.strip(),
-            product_id=product_id,
+            product_id=product.id,
             quantity=item.quantity,
             priority=item.priority or "Medium",
             deadline=item.deadline.strip(),
@@ -147,22 +178,31 @@ def create_bulk_orders(
         db.refresh(o)
     return created_orders
 
+
 @router.put("/{order_id}", response_model=OrderOut)
 def update_order(
-    order_id: int,
+    order_id: str,
     order_data: OrderUpdate,
     db: Session = Depends(get_db),
     admin: User = Depends(require_admin)
 ):
-    order = db.query(Order).filter(Order.id == order_id).first()
+    order = find_order(db, order_id)
     if not order:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
 
     if order_data.product_name is not None:
-        order.product_name = order_data.product_name.strip()
-        product = db.query(Product).filter(Product.product_name == order.product_name).first()
-        if product:
-            order.product_id = product.id
+        p_name = order_data.product_name.strip()
+        product = db.query(Product).filter(Product.product_name == p_name).first()
+        if not product:
+            product = Product(
+                product_name=p_name,
+                category="General",
+                processing_time=order.processing_time or 0.05,
+                preferred_line="All Machines"
+            )
+            db.add(product)
+            db.flush()
+        order.product_id = product.id
 
     if order_data.quantity is not None:
         order.quantity = order_data.quantity
@@ -186,13 +226,14 @@ def update_order(
     db.refresh(order)
     return order
 
+
 @router.delete("/{order_id}")
 def delete_order(
-    order_id: int,
+    order_id: str,
     db: Session = Depends(get_db),
     admin: User = Depends(require_admin)
 ):
-    order = db.query(Order).filter(Order.id == order_id).first()
+    order = find_order(db, order_id)
     if not order:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
 

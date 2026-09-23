@@ -86,9 +86,9 @@ All application data is securely persisted in Supabase PostgreSQL. The relationa
 Ensure `.env` in the root project folder contains your Supabase credentials:
 
 ```env
-SUPABASE_URL=https://your-project-id.supabase.co
-SUPABASE_KEY=your-supabase-anon-or-service-role-key
-SECRET_KEY=ipss_jwt_production_secret_key_9889_floor_system
+SUPABASE_URL="paste your url"
+SUPABASE_KEY="paate your key"
+
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=1440
 ```

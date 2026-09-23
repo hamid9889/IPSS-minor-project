@@ -9,10 +9,6 @@
 ```text
 IPSS-minor-project/
 │
-├── database/
-│   ├── database.py          # 🔌 Re-exports Supabase client for easy access
-│   └── schema.sql           # 🗄️ Relational database schema & table definitions
-│
 ├── backend/
 │   ├── main.py              # 🚀 FastAPI application entry point & static file hosting
 │   ├── database.py          # 🔌 Direct Supabase client setup (clean & dependency-free)

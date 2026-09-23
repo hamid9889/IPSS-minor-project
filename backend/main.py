@@ -1,5 +1,6 @@
 import os
 from fastapi import FastAPI
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from backend.routes import auth, products, machines, orders, schedules, reports
@@ -28,8 +29,6 @@ app.include_router(schedules.router, prefix="/api/schedule")
 app.include_router(schedules.router, prefix="/api/schedules")
 app.include_router(reports.router)
 
-from fastapi.responses import JSONResponse
-
 @app.exception_handler(RuntimeError)
 async def runtime_error_handler(request, exc: RuntimeError):
     msg = str(exc)
@@ -39,7 +38,6 @@ async def runtime_error_handler(request, exc: RuntimeError):
 
 @app.get("/api/health")
 def health_check():
-    import os
     has_url = bool(os.getenv("SUPABASE_URL"))
     has_key = bool(os.getenv("SUPABASE_KEY") or os.getenv("SUPABASE_API_KEY"))
     return {

@@ -39,8 +39,8 @@ def ensure_default_users():
                 "address": "Assembly Section B, Floor 2, Lucknow"
             }
             supabase.table("users").insert([admin_data, operator_data]).execute()
-    except Exception as e:
-        print(f"User seed check notice: {e}")
+    except Exception:
+        pass
 
 @router.post("/register", response_model=UserOut, status_code=status.HTTP_201_CREATED)
 def register(user_data: UserRegister):

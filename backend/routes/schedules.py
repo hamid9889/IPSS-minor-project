@@ -1,5 +1,5 @@
 import math
-from typing import List, Dict
+from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from backend.database import supabase
 from backend.schemas import ScheduleCreate, ScheduleUpdate, ScheduleOut

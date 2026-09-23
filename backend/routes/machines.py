@@ -1,120 +1,135 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
-from backend.database import get_db
-from backend.models import Machine, Activity, User
+from backend.database import supabase
 from backend.schemas import MachineCreate, MachineUpdate, MachineOut
-from backend.auth import get_current_user, require_admin
+from backend.auth import get_current_user, require_admin, CurrentUser
 
 router = APIRouter(prefix="/api/machines", tags=["Machines"])
 
 @router.get("", response_model=List[MachineOut])
 def get_machines(
     search: Optional[str] = None,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: CurrentUser = Depends(get_current_user)
 ):
-    query = db.query(Machine)
+    query = supabase.table("machines").select("*").order("id")
+    response = query.execute()
+    machines = response.data or []
+
     if search:
-        search_pattern = f"%{search.strip().lower()}%"
-        query = query.filter(Machine.machine_name.ilike(search_pattern))
-    return query.order_by(Machine.id.asc()).all()
+        term = search.strip().lower()
+        machines = [
+            m for m in machines
+            if term in (m.get("machine_name") or "").lower()
+        ]
+
+    return machines
 
 @router.get("/{machine_id}", response_model=MachineOut)
 def get_machine(
     machine_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: CurrentUser = Depends(get_current_user)
 ):
-    machine = db.query(Machine).filter(Machine.id == machine_id).first()
-    if not machine:
+    response = supabase.table("machines").select("*").eq("id", machine_id).execute()
+    if not response.data:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Machine not found")
-    return machine
+    return response.data[0]
 
 @router.post("", response_model=MachineOut, status_code=status.HTTP_201_CREATED)
 def create_machine(
     machine_data: MachineCreate,
-    db: Session = Depends(get_db),
-    admin: User = Depends(require_admin)
+    admin: CurrentUser = Depends(require_admin)
 ):
-    # Check duplicate machine name
     name = machine_data.machine_name.strip()
-    existing = db.query(Machine).filter(Machine.machine_name == name).first()
-    if existing:
+    # Check duplicate machine name
+    existing = supabase.table("machines").select("id").eq("machine_name", name).execute()
+    if existing.data:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="A machine with this name already exists"
         )
 
-    new_machine = Machine(
-        machine_name=name,
-        capacity=machine_data.capacity,
-        status=machine_data.status or "Available"
-    )
-    db.add(new_machine)
+    new_machine = {
+        "machine_name": name,
+        "capacity": machine_data.capacity,
+        "status": machine_data.status or "Available"
+    }
+    insert_res = supabase.table("machines").insert(new_machine).execute()
+    if not insert_res.data:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to create machine")
 
-    activity = Activity(
-        text=f'Added machine "{new_machine.machine_name}"',
-        activity_type="success"
-    )
-    db.add(activity)
+    try:
+        supabase.table("activities").insert({
+            "text": f'Added machine "{name}"',
+            "activity_type": "success"
+        }).execute()
+    except Exception:
+        pass
 
-    db.commit()
-    db.refresh(new_machine)
-    return new_machine
+    return insert_res.data[0]
 
 @router.put("/{machine_id}", response_model=MachineOut)
 def update_machine(
     machine_id: int,
     machine_data: MachineUpdate,
-    db: Session = Depends(get_db),
-    admin: User = Depends(require_admin)
+    admin: CurrentUser = Depends(require_admin)
 ):
-    machine = db.query(Machine).filter(Machine.id == machine_id).first()
-    if not machine:
+    check = supabase.table("machines").select("*").eq("id", machine_id).execute()
+    if not check.data:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Machine not found")
+    existing_machine = check.data[0]
 
+    update_fields = {}
     if machine_data.machine_name is not None:
         name = machine_data.machine_name.strip()
-        existing = db.query(Machine).filter(Machine.machine_name == name, Machine.id != machine_id).first()
-        if existing:
+        dup = supabase.table("machines").select("id").eq("machine_name", name).neq("id", machine_id).execute()
+        if dup.data:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Machine name already in use")
-        machine.machine_name = name
+        update_fields["machine_name"] = name
 
     if machine_data.capacity is not None:
-        machine.capacity = machine_data.capacity
+        update_fields["capacity"] = machine_data.capacity
 
     if machine_data.status is not None:
-        machine.status = machine_data.status
+        update_fields["status"] = machine_data.status
 
-    activity = Activity(
-        text=f'Updated machine "{machine.machine_name}" ({machine.status})',
-        activity_type="warning"
-    )
-    db.add(activity)
+    if update_fields:
+        res = supabase.table("machines").update(update_fields).eq("id", machine_id).execute()
+        if not res.data:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to update machine")
+        updated = res.data[0]
+    else:
+        updated = existing_machine
 
-    db.commit()
-    db.refresh(machine)
-    return machine
+    m_name = updated.get("machine_name", "Machine")
+    m_status = updated.get("status", "")
+    try:
+        supabase.table("activities").insert({
+            "text": f'Updated machine "{m_name}" ({m_status})',
+            "activity_type": "warning"
+        }).execute()
+    except Exception:
+        pass
+
+    return updated
 
 @router.delete("/{machine_id}")
 def delete_machine(
     machine_id: int,
-    db: Session = Depends(get_db),
-    admin: User = Depends(require_admin)
+    admin: CurrentUser = Depends(require_admin)
 ):
-    machine = db.query(Machine).filter(Machine.id == machine_id).first()
-    if not machine:
+    check = supabase.table("machines").select("machine_name").eq("id", machine_id).execute()
+    if not check.data:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Machine not found")
+    name = check.data[0]["machine_name"]
 
-    name = machine.machine_name
-    db.delete(machine)
+    supabase.table("machines").delete().eq("id", machine_id).execute()
 
-    activity = Activity(
-        text=f'Deleted machine "{name}"',
-        activity_type="danger"
-    )
-    db.add(activity)
+    try:
+        supabase.table("activities").insert({
+            "text": f'Deleted machine "{name}"',
+            "activity_type": "danger"
+        }).execute()
+    except Exception:
+        pass
 
-    db.commit()
     return {"message": f'Machine "{name}" deleted successfully'}

@@ -1,24 +1,25 @@
 # ⚙️ IPSS — Intelligent Product Scheduling System
 
-> **Full-stack manufacturing floor scheduling, real-time machine monitoring, and predictive analytics platform built with vanilla HTML5/CSS3/JavaScript frontend, Python (FastAPI + SQLAlchemy) backend, and MySQL database.**
+> **Full-stack manufacturing floor scheduling, real-time machine monitoring, and production analytics platform built with vanilla HTML5/CSS3/JavaScript frontend, Python (FastAPI) backend, and Supabase (PostgreSQL) database.**
 
 ---
 
 ## 📁 Project Architecture
 
 ```text
-monir/
+IPSS-minor-project/
 │
 ├── database/
-│   └── schema.sql           # 🗄️ MySQL database schema & table definitions
+│   ├── database.py          # 🔌 Re-exports Supabase client for easy access
+│   └── schema.sql           # 🗄️ Relational database schema & table definitions
 │
 ├── backend/
 │   ├── main.py              # 🚀 FastAPI application entry point & static file hosting
-│   ├── database.py          # 🔌 SQLAlchemy database connection & session maker
-│   ├── models.py            # 📊 Relational models (Users, Products, Machines, Orders, Schedules, Activities)
+│   ├── database.py          # 🔌 Direct Supabase client setup (clean & dependency-free)
+│   ├── models.py            # 📊 Schema documentation & data definitions
 │   ├── schemas.py           # 🛡️ Pydantic validation & response schemas
 │   ├── auth.py              # 🔐 JWT authentication, bcrypt password hashing & RBAC
-│   ├── seed.py              # 🌱 Initial database seeder for demo accounts & master data
+│   ├── seed.py              # 🌱 Initial database seeder for demo accounts & starter data
 │   │
 │   ├── routes/
 │   │   ├── auth.py          # /api/auth: Login, profile, and current user
@@ -26,10 +27,10 @@ monir/
 │   │   ├── machines.py      # /api/machines: CRUD for machines registry
 │   │   ├── orders.py        # /api/orders: CRUD, filtering, and bulk import
 │   │   ├── schedules.py     # /api/schedules: Gantt timeline & auto-scheduler
-│   │   └── reports.py       # /api/reports & /api/dashboard: Real-time MySQL metrics
+│   │   └── reports.py       # /api/reports & /api/dashboard: Real-time Supabase metrics
 │   │
 │   ├── requirements.txt     # 📦 Python dependencies
-│   ├── .env                 # 🔑 Database URL & JWT secret configuration
+│   ├── .env                 # 🔑 Database URL, Supabase key & JWT secret configuration
 │   └── .env.example         # 📝 Example environment configuration
 │
 ├── index.html               # 🌐 Landing page & system introduction
@@ -39,7 +40,7 @@ monir/
 ├── machines.html            # 🏭 Factory machines registry & status allocations
 ├── orders.html              # 📋 Production orders, bulk drag-and-drop & live simulation
 ├── schedule.html            # 📅 Automated priority-deadline scheduler & visual Gantt chart
-├── reports.html             # 📈 Real-time MySQL production analytics & utilization reports
+├── reports.html             # 📈 Real-time production analytics & utilization reports
 ├── profile.html             # 👤 User profile & account management
 │
 ├── css/
@@ -49,15 +50,15 @@ monir/
 ├── js/
 │   └── script.js            # ⚡ Dynamic REST API integration, RBAC guards & reactive UI
 │
-├── .env.example             # 📝 Root environment example
+├── .env.example             # 📝 Root environment example template
 └── README.md                # 📖 System documentation & setup guide
 ```
 
 ---
 
-## 🗄️ Relational Database Structure (MySQL)
+## 🗄️ Relational Database Structure (Supabase PostgreSQL)
 
-All application data is stored in MySQL (`ipss_db`). The relational design uses clean foreign keys without duplicate columns:
+All application data is securely persisted in Supabase PostgreSQL. The relational design uses clean foreign keys without duplicate columns:
 
 * **users → orders**: `orders.user_id` references `users.id` (tracks which user created the order)
 * **products → orders**: `orders.product_id` references `products.id` (`ON DELETE CASCADE`)
@@ -85,67 +86,48 @@ All application data is stored in MySQL (`ipss_db`). The relational design uses 
 
 ## 🚀 Setup & Run Instructions
 
-### 1. Start MySQL Server
-Make sure your local MySQL server is running:
-- **Windows (Services):** Open **Services**, locate `MySQL80`, and ensure status is **Running**.
-- **Or via Command Prompt / PowerShell:**
-  ```powershell
-  Start-Service MySQL80
-  ```
+### 1. Configure Environment Variables
+Ensure `.env` in the root project folder contains your Supabase credentials:
 
-### 2. Configure Environment Variables
-Copy `.env.example` to `backend/.env` (and `.env` in the root folder):
 ```env
-DATABASE_URL=mysql+pymysql://root:YOUR_PASSWORD@localhost:3306/ipss_db
+SUPABASE_URL=https://your-project-id.supabase.co
+SUPABASE_KEY=your-supabase-anon-or-service-role-key
 SECRET_KEY=ipss_jwt_production_secret_key_9889_floor_system
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=1440
 ```
-Replace `YOUR_PASSWORD` with your actual MySQL `root` password.
 
-### 3. Initialize the Database
-You can create the tables and seed default data using either method:
-
-**Option A — Automated Seeder (Recommended):**
-```bash
-python -m backend.seed
-```
-
-**Option B — MySQL Schema Import:**
-```bash
-mysql -u root -p ipss_db < database/schema.sql
-python -m backend.seed
-```
-
-### 4. Install Python Dependencies
+### 2. Install Python Dependencies
 ```bash
 pip install -r backend/requirements.txt
 ```
 
-### 5. Start the FastAPI Backend
+### 3. (Optional) Seed Starter Data
+If your Supabase tables are fresh and empty, run the automatic seeder to insert default demo users, products, machines, and orders:
+```bash
+python -m backend.seed
+```
+
+### 4. Start the FastAPI Backend
 ```bash
 python -m uvicorn backend.main:app --reload --port 8000
 ```
 
-### 6. Open the Application
+### 5. Open the Application
 - **Application Portal:** [http://localhost:8000/index.html](http://localhost:8000/index.html) or [http://localhost:8000/login.html](http://localhost:8000/login.html)
 - **Interactive Swagger API Docs:** [http://localhost:8000/docs](http://localhost:8000/docs)
 
 ---
 
-## 🔍 How to View Data in MySQL Workbench
+## 🔍 How to View Data in Supabase
 
-1. Open **MySQL Workbench**.
-2. Connect to your local MySQL instance (port `3306`, user `root`).
-3. Open a new SQL tab and run:
-   ```sql
-   USE ipss_db;
-
-   SELECT * FROM users;
-   SELECT * FROM products;
-   SELECT * FROM machines;
-   SELECT * FROM orders;
-   SELECT * FROM schedules;
-   SELECT * FROM activities;
-   ```
-4. Execute the query to view the live records persisted by the application.
+1. Open your **Supabase Dashboard** at [supabase.com/dashboard](https://supabase.com/dashboard).
+2. Select your project and navigate to the **Table Editor** on the left menu.
+3. Select any table to inspect live records:
+   - `users`
+   - `products`
+   - `machines`
+   - `orders`
+   - `schedules`
+   - `activities`
+4. Any operation executed on the frontend UI will immediately reflect in the Supabase Table Editor.

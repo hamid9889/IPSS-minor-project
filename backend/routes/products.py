@@ -1,126 +1,138 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
-from backend.database import get_db
-from backend.models import Product, Activity, User
+from backend.database import supabase
 from backend.schemas import ProductCreate, ProductUpdate, ProductOut
-from backend.auth import get_current_user, require_admin
+from backend.auth import get_current_user, require_admin, CurrentUser
 
 router = APIRouter(prefix="/api/products", tags=["Products"])
 
 @router.get("", response_model=List[ProductOut])
 def get_products(
     search: Optional[str] = None,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: CurrentUser = Depends(get_current_user)
 ):
-    query = db.query(Product)
+    query = supabase.table("products").select("*").order("id")
+    response = query.execute()
+    products = response.data or []
+
     if search:
-        search_pattern = f"%{search.strip().lower()}%"
-        query = query.filter(
-            (Product.product_name.ilike(search_pattern)) | 
-            (Product.category.ilike(search_pattern))
-        )
-    return query.order_by(Product.id.asc()).all()
+        term = search.strip().lower()
+        products = [
+            p for p in products
+            if term in (p.get("product_name") or "").lower() or term in (p.get("category") or "").lower()
+        ]
+
+    return products
 
 @router.get("/{product_id}", response_model=ProductOut)
 def get_product(
     product_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: CurrentUser = Depends(get_current_user)
 ):
-    product = db.query(Product).filter(Product.id == product_id).first()
-    if not product:
+    response = supabase.table("products").select("*").eq("id", product_id).execute()
+    if not response.data:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
-    return product
+    return response.data[0]
 
 @router.post("", response_model=ProductOut, status_code=status.HTTP_201_CREATED)
 def create_product(
     product_data: ProductCreate,
-    db: Session = Depends(get_db),
-    admin: User = Depends(require_admin)
+    admin: CurrentUser = Depends(require_admin)
 ):
-    # Check for duplicate product name
-    existing = db.query(Product).filter(Product.product_name == product_data.product_name.strip()).first()
-    if existing:
+    name = product_data.product_name.strip()
+    # Check duplicate product name
+    existing = supabase.table("products").select("id").eq("product_name", name).execute()
+    if existing.data:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="A product with this name already exists"
         )
 
-    new_product = Product(
-        product_name=product_data.product_name.strip(),
-        category=product_data.category.strip(),
-        processing_time=product_data.processing_time,
-        preferred_line=product_data.preferred_line or "All Machines"
-    )
-    db.add(new_product)
+    new_prod = {
+        "product_name": name,
+        "category": product_data.category.strip(),
+        "processing_time": product_data.processing_time,
+        "preferred_line": product_data.preferred_line or "All Machines"
+    }
+    insert_res = supabase.table("products").insert(new_prod).execute()
+    if not insert_res.data:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to create product")
 
     # Activity log
-    activity = Activity(
-        text=f'Created Product Master "{new_product.product_name}"',
-        activity_type="success"
-    )
-    db.add(activity)
+    try:
+        supabase.table("activities").insert({
+            "text": f'Created Product Master "{name}"',
+            "activity_type": "success"
+        }).execute()
+    except Exception:
+        pass
 
-    db.commit()
-    db.refresh(new_product)
-    return new_product
+    return insert_res.data[0]
 
 @router.put("/{product_id}", response_model=ProductOut)
 def update_product(
     product_id: int,
     product_data: ProductUpdate,
-    db: Session = Depends(get_db),
-    admin: User = Depends(require_admin)
+    admin: CurrentUser = Depends(require_admin)
 ):
-    product = db.query(Product).filter(Product.id == product_id).first()
-    if not product:
+    check = supabase.table("products").select("*").eq("id", product_id).execute()
+    if not check.data:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
+    existing_product = check.data[0]
 
+    update_fields = {}
     if product_data.product_name is not None:
-        # Check duplicate name if renamed
         renamed = product_data.product_name.strip()
-        existing = db.query(Product).filter(Product.product_name == renamed, Product.id != product_id).first()
-        if existing:
+        dup = supabase.table("products").select("id").eq("product_name", renamed).neq("id", product_id).execute()
+        if dup.data:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Product name already in use")
-        product.product_name = renamed
+        update_fields["product_name"] = renamed
 
     if product_data.category is not None:
-        product.category = product_data.category.strip()
+        update_fields["category"] = product_data.category.strip()
     if product_data.processing_time is not None:
-        product.processing_time = product_data.processing_time
+        update_fields["processing_time"] = product_data.processing_time
     if product_data.preferred_line is not None:
-        product.preferred_line = product_data.preferred_line
+        update_fields["preferred_line"] = product_data.preferred_line
 
-    activity = Activity(
-        text=f'Updated Product Master "{product.product_name}"',
-        activity_type="info"
-    )
-    db.add(activity)
+    if update_fields:
+        res = supabase.table("products").update(update_fields).eq("id", product_id).execute()
+        if not res.data:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to update product")
+        updated = res.data[0]
+    else:
+        updated = existing_product
 
-    db.commit()
-    db.refresh(product)
-    return product
+    # Activity log
+    p_name = updated.get("product_name", "Product")
+    try:
+        supabase.table("activities").insert({
+            "text": f'Updated Product Master "{p_name}"',
+            "activity_type": "info"
+        }).execute()
+    except Exception:
+        pass
+
+    return updated
 
 @router.delete("/{product_id}")
 def delete_product(
     product_id: int,
-    db: Session = Depends(get_db),
-    admin: User = Depends(require_admin)
+    admin: CurrentUser = Depends(require_admin)
 ):
-    product = db.query(Product).filter(Product.id == product_id).first()
-    if not product:
+    check = supabase.table("products").select("product_name").eq("id", product_id).execute()
+    if not check.data:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
+    name = check.data[0]["product_name"]
 
-    name = product.product_name
-    db.delete(product)
+    supabase.table("products").delete().eq("id", product_id).execute()
 
-    activity = Activity(
-        text=f'Deleted Product Master "{name}"',
-        activity_type="danger"
-    )
-    db.add(activity)
+    try:
+        supabase.table("activities").insert({
+            "text": f'Deleted Product Master "{name}"',
+            "activity_type": "danger"
+        }).execute()
+    except Exception:
+        pass
 
-    db.commit()
     return {"message": f'Product "{name}" deleted successfully'}

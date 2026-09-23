@@ -1,60 +1,87 @@
 import math
-from typing import List
+from typing import List, Dict
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
-from backend.database import get_db
-from backend.models import Schedule, Order, Machine, Activity, User
+from backend.database import supabase
 from backend.schemas import ScheduleCreate, ScheduleUpdate, ScheduleOut
-from backend.auth import get_current_user, require_admin
+from backend.auth import get_current_user, require_admin, CurrentUser
 
 router = APIRouter(tags=["Scheduling"])
 
+def enrich_schedules(schedules: List[dict]) -> List[dict]:
+    if not schedules:
+        return []
+
+    try:
+        mach_res = supabase.table("machines").select("id, machine_name").execute()
+        mach_map = {m["id"]: m.get("machine_name", "") for m in (mach_res.data or [])}
+    except Exception:
+        mach_map = {}
+
+    try:
+        prod_res = supabase.table("products").select("id, product_name").execute()
+        prod_map = {p["id"]: p.get("product_name", "") for p in (prod_res.data or [])}
+    except Exception:
+        prod_map = {}
+
+    try:
+        order_res = supabase.table("orders").select("id, order_id, product_id").execute()
+        order_data = order_res.data or []
+        order_code_map = {o["id"]: o.get("order_id", "") for o in order_data}
+        order_prod_map = {o["id"]: prod_map.get(o.get("product_id"), "") for o in order_data}
+    except Exception:
+        order_code_map = {}
+        order_prod_map = {}
+
+    for s in schedules:
+        s["machine_name"] = mach_map.get(s.get("machine_id"), "")
+        s["order_code"] = order_code_map.get(s.get("order_id"), "")
+        s["product_name"] = order_prod_map.get(s.get("order_id"), "")
+
+    return schedules
 
 @router.get("", response_model=List[ScheduleOut])
-def get_schedules(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    return db.query(Schedule).order_by(Schedule.id.asc()).all()
-
+def get_schedules(current_user: CurrentUser = Depends(get_current_user)):
+    res = supabase.table("schedules").select("*").order("id").execute()
+    schedules = res.data or []
+    return enrich_schedules(schedules)
 
 @router.post("", response_model=ScheduleOut, status_code=status.HTTP_201_CREATED)
 def create_schedule(
     data: ScheduleCreate,
-    db: Session = Depends(get_db),
-    admin: User = Depends(require_admin)
+    admin: CurrentUser = Depends(require_admin)
 ):
-    machine = db.query(Machine).filter(Machine.id == data.machine_id).first()
-    if not machine:
+    # Verify machine exists
+    mach_check = supabase.table("machines").select("id").eq("id", data.machine_id).execute()
+    if not mach_check.data:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Machine not found")
 
-    order = db.query(Order).filter(Order.id == data.order_id).first()
-    if not order:
+    # Verify order exists
+    order_check = supabase.table("orders").select("id, priority").eq("id", data.order_id).execute()
+    if not order_check.data:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
 
-    new_schedule = Schedule(
-        machine_id=data.machine_id,
-        order_id=data.order_id,
-        start_time=data.start_time,
-        end_time=data.end_time,
-        priority=data.priority or order.priority or "Medium",
-        status=data.status or "Scheduled"
-    )
-    db.add(new_schedule)
-    db.commit()
-    db.refresh(new_schedule)
-    return new_schedule
+    order = order_check.data[0]
+    new_item = {
+        "machine_id": data.machine_id,
+        "order_id": data.order_id,
+        "start_time": data.start_time,
+        "end_time": data.end_time,
+        "priority": data.priority or order.get("priority") or "Medium",
+        "status": data.status or "Scheduled"
+    }
 
+    insert_res = supabase.table("schedules").insert(new_item).execute()
+    if not insert_res.data:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to create schedule")
+
+    enriched = enrich_schedules([insert_res.data[0]])
+    return enriched[0]
 
 @router.post("/generate", response_model=List[ScheduleOut])
-def generate_schedule(
-    db: Session = Depends(get_db),
-    admin: User = Depends(require_admin)
-):
+def generate_schedule(admin: CurrentUser = Depends(require_admin)):
     # 1. Fetch pending orders
-    pending_orders = db.query(Order).filter(
-        Order.status.in_(["Pending", "In Progress"])
-    ).all()
+    orders_res = supabase.table("orders").select("*").in_("status", ["Pending", "In Progress"]).execute()
+    pending_orders = orders_res.data or []
 
     if not pending_orders:
         raise HTTPException(
@@ -63,9 +90,8 @@ def generate_schedule(
         )
 
     # 2. Fetch operational machines
-    machines = db.query(Machine).filter(
-        Machine.status.in_(["Available", "Working"])
-    ).all()
+    mach_res = supabase.table("machines").select("*").in_("status", ["Available", "Working"]).execute()
+    machines = mach_res.data or []
 
     if not machines:
         raise HTTPException(
@@ -77,107 +103,111 @@ def generate_schedule(
     priority_weights = {"High": 3, "Medium": 2, "Low": 1}
 
     def sort_key(order):
-        weight = priority_weights.get(order.priority, 1)
-        deadline = order.deadline or "9999-12-31"
+        weight = priority_weights.get(order.get("priority", "Medium"), 1)
+        deadline = order.get("deadline") or "9999-12-31"
         return (-weight, deadline)
 
     sorted_orders = sorted(pending_orders, key=sort_key)
 
-    # 4. Clear existing schedules to regenerate optimal schedule
-    db.query(Schedule).delete()
+    # Fetch product processing times
+    try:
+        prod_res = supabase.table("products").select("id, processing_time").execute()
+        prod_proc_map = {p["id"]: p.get("processing_time", 0.05) for p in (prod_res.data or [])}
+    except Exception:
+        prod_proc_map = {}
 
-    # 5. Allocate orders to machines round-robin
-    new_schedules = []
+    # 4. Clear existing schedules to regenerate optimal schedule
+    try:
+        supabase.table("schedules").delete().neq("id", 0).execute()
+    except Exception:
+        pass
+
+    # 5. Allocate orders to machines
+    rows_to_insert = []
     start_hour = 9
 
     for i, order in enumerate(sorted_orders):
         assigned_machine = machines[i % len(machines)]
-        product = order.product
-
-        if product:
-            duration_hours = max(1, math.ceil(product.processing_time * (order.quantity / 50.0)))
-        else:
-            duration_hours = 2
+        proc_time = prod_proc_map.get(order.get("product_id"), 0.05)
+        qty = order.get("quantity", 50)
+        duration_hours = max(1, math.ceil(proc_time * (qty / 50.0)))
 
         start_time_str = f"{start_hour:02d}:00"
         end_hour = start_hour + duration_hours
         end_time_str = f"{end_hour:02d}:00"
 
-        schedule_item = Schedule(
-            machine_id=assigned_machine.id,
-            order_id=order.id,
-            start_time=start_time_str,
-            end_time=end_time_str,
-            priority=order.priority,
-            status="Scheduled"
-        )
-        db.add(schedule_item)
-        new_schedules.append(schedule_item)
+        rows_to_insert.append({
+            "machine_id": assigned_machine["id"],
+            "order_id": order["id"],
+            "start_time": start_time_str,
+            "end_time": end_time_str,
+            "priority": order.get("priority", "Medium"),
+            "status": "Scheduled"
+        })
 
         start_hour += duration_hours
 
-    activity = Activity(
-        text="Generated production schedule",
-        activity_type="success"
-    )
-    db.add(activity)
+    insert_res = supabase.table("schedules").insert(rows_to_insert).execute()
+    new_schedules = insert_res.data or []
 
-    db.commit()
-    for s in new_schedules:
-        db.refresh(s)
+    try:
+        supabase.table("activities").insert({
+            "text": "Generated production schedule",
+            "activity_type": "success"
+        }).execute()
+    except Exception:
+        pass
 
-    return new_schedules
-
+    return enrich_schedules(new_schedules)
 
 @router.put("/{schedule_id}", response_model=ScheduleOut)
 def update_schedule(
     schedule_id: int,
     data: ScheduleUpdate,
-    db: Session = Depends(get_db),
-    admin: User = Depends(require_admin)
+    admin: CurrentUser = Depends(require_admin)
 ):
-    schedule = db.query(Schedule).filter(Schedule.id == schedule_id).first()
-    if not schedule:
+    check = supabase.table("schedules").select("*").eq("id", schedule_id).execute()
+    if not check.data:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Schedule entry not found")
 
+    update_fields = {}
     if data.machine_id is not None:
-        schedule.machine_id = data.machine_id
+        update_fields["machine_id"] = data.machine_id
     if data.order_id is not None:
-        schedule.order_id = data.order_id
+        update_fields["order_id"] = data.order_id
     if data.start_time is not None:
-        schedule.start_time = data.start_time
+        update_fields["start_time"] = data.start_time
     if data.end_time is not None:
-        schedule.end_time = data.end_time
+        update_fields["end_time"] = data.end_time
     if data.priority is not None:
-        schedule.priority = data.priority
+        update_fields["priority"] = data.priority
     if data.status is not None:
-        schedule.status = data.status
+        update_fields["status"] = data.status
 
-    db.commit()
-    db.refresh(schedule)
-    return schedule
+    if update_fields:
+        res = supabase.table("schedules").update(update_fields).eq("id", schedule_id).execute()
+        if not res.data:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to update schedule")
+        updated = res.data[0]
+    else:
+        updated = check.data[0]
 
+    enriched = enrich_schedules([updated])
+    return enriched[0]
 
 @router.delete("/{schedule_id}")
 def delete_schedule(
     schedule_id: int,
-    db: Session = Depends(get_db),
-    admin: User = Depends(require_admin)
+    admin: CurrentUser = Depends(require_admin)
 ):
-    schedule = db.query(Schedule).filter(Schedule.id == schedule_id).first()
-    if not schedule:
+    check = supabase.table("schedules").select("id").eq("id", schedule_id).execute()
+    if not check.data:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Schedule entry not found")
 
-    db.delete(schedule)
-    db.commit()
+    supabase.table("schedules").delete().eq("id", schedule_id).execute()
     return {"message": "Schedule entry deleted successfully"}
 
-
 @router.delete("/clear")
-def clear_schedules(
-    db: Session = Depends(get_db),
-    admin: User = Depends(require_admin)
-):
-    db.query(Schedule).delete()
-    db.commit()
+def clear_schedules(admin: CurrentUser = Depends(require_admin)):
+    supabase.table("schedules").delete().neq("id", 0).execute()
     return {"message": "All schedule entries cleared"}

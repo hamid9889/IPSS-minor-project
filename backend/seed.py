@@ -1,3 +1,11 @@
+import os
+import sys
+
+# Ensure workspace root is in sys.path so 'backend' is discoverable regardless of working directory
+_project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _project_root not in sys.path:
+    sys.path.insert(0, _project_root)
+
 from backend.database import supabase
 from backend.auth import hash_password
 

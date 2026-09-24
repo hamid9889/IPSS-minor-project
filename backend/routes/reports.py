@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, Any
 from fastapi import APIRouter, Depends
 from backend.database import supabase
@@ -37,7 +37,7 @@ def get_dashboard_stats(
     pending_orders = sum(1 for o in orders if o.get("status") == "Pending")
     completed_orders = sum(1 for o in orders if o.get("status") == "Completed")
 
-    today_str = datetime.utcnow().strftime("%Y-%m-%d")
+    today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     delayed_orders = sum(
         1 for o in orders
         if (o.get("deadline") or "") < today_str and o.get("status") != "Completed"
@@ -135,7 +135,7 @@ def get_reports_summary(
     completed_orders = sum(1 for o in orders if o.get("status") == "Completed")
     pending_orders = sum(1 for o in orders if o.get("status") == "Pending")
 
-    today_str = datetime.utcnow().strftime("%Y-%m-%d")
+    today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     delayed_orders = sum(
         1 for o in orders
         if (o.get("deadline") or "") < today_str and o.get("status") != "Completed"

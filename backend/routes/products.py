@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, status
 from backend.database import supabase
 from backend.schemas import ProductCreate, ProductUpdate, ProductOut
@@ -80,7 +80,7 @@ def update_product(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
     existing_product = check.data[0]
 
-    update_fields = {}
+    update_fields: Dict[str, Any] = {}
     if product_data.product_name is not None:
         renamed = product_data.product_name.strip()
         dup = supabase.table("products").select("id").eq("product_name", renamed).neq("id", product_id).execute()

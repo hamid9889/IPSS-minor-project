@@ -1,5 +1,5 @@
 import math
-from typing import List
+from typing import List, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, status
 from backend.database import supabase
 from backend.schemas import ScheduleCreate, ScheduleUpdate, ScheduleOut
@@ -170,7 +170,7 @@ def update_schedule(
     if not check.data:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Schedule entry not found")
 
-    update_fields = {}
+    update_fields: Dict[str, Any] = {}
     if data.machine_id is not None:
         update_fields["machine_id"] = data.machine_id
     if data.order_id is not None:

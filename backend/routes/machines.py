@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, status
 from backend.database import supabase
 from backend.schemas import MachineCreate, MachineUpdate, MachineOut
@@ -78,7 +78,7 @@ def update_machine(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Machine not found")
     existing_machine = check.data[0]
 
-    update_fields = {}
+    update_fields: Dict[str, Any] = {}
     if machine_data.machine_name is not None:
         name = machine_data.machine_name.strip()
         dup = supabase.table("machines").select("id").eq("machine_name", name).neq("id", machine_id).execute()

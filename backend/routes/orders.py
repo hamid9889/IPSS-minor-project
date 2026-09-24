@@ -1,6 +1,6 @@
 import random
-from typing import List, Optional, Dict
-from datetime import datetime
+from typing import List, Optional, Dict, Any
+from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status
 from backend.database import supabase
 from backend.schemas import OrderCreate, OrderUpdate, OrderOut
@@ -8,7 +8,7 @@ from backend.auth import require_admin, CurrentUser
 
 router = APIRouter(prefix="/api/orders", tags=["Orders"])
 
-def get_product_map() -> Dict[int, str]:
+def get_product_map() -> Dict[Any, str]:
     """Return dictionary of product_id -> product_name."""
     try:
         res = supabase.table("products").select("id, product_name").execute()
@@ -24,7 +24,7 @@ def generate_unique_order_id() -> str:
             return candidate
 
 def find_order_record(identifier: str) -> Optional[dict]:
-    clean_id = str(identifier).strip()
+    clean_id = identifier.strip()
     if clean_id.isdigit():
         res = supabase.table("orders").select("*").eq("id", int(clean_id)).execute()
         if res.data:
@@ -78,7 +78,7 @@ def get_orders(
 
     if status_filter and status_filter != "All":
         if status_filter == "Delayed":
-            today = datetime.utcnow().strftime("%Y-%m-%d")
+            today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
             orders = [
                 o for o in orders
                 if (o.get("deadline") or "") < today and o.get("status") != "Completed"
@@ -205,7 +205,7 @@ def update_order(
     if not order:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
 
-    update_fields = {}
+    update_fields: Dict[str, Any] = {}
     product_name = None
 
     if order_data.product_name is not None:

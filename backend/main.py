@@ -1,4 +1,11 @@
 import os
+import sys
+
+# Ensure workspace root is in sys.path so 'backend' is discoverable regardless of working directory
+_project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _project_root not in sys.path:
+    sys.path.insert(0, _project_root)
+
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware

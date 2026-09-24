@@ -1,4 +1,6 @@
+
 import os
+from typing import Optional
 from dotenv import load_dotenv
 from supabase import create_client, Client
 
@@ -11,7 +13,7 @@ def _load_credentials():
     key = (os.getenv("SUPABASE_KEY") or os.getenv("SUPABASE_API_KEY", "")).strip()
     return url, key
 
-_client: Client = None
+_client: Optional[Client] = None
 
 def get_supabase() -> Client:
     """Return the Supabase client instance, initializing on first call."""

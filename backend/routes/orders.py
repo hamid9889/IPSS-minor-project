@@ -36,7 +36,7 @@ def find_order_record(identifier: str) -> Optional[dict]:
 
 def resolve_or_create_product(product_name: str, processing_time: Optional[float] = 0.05) -> dict:
     p_name = product_name.strip()
-    res = supabase.table("products").select("*").eq("product_name", p_name).execute()
+    res = supabase.table("products").select("*").ilike("product_name", p_name).execute()
     if res.data:
         return res.data[0]
 

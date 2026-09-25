@@ -44,8 +44,11 @@ def ensure_default_users():
 
 @router.post("/register", response_model=UserOut, status_code=status.HTTP_201_CREATED)
 def register(user_data: UserRegister):
-    # Check if username or email already exists
-    res = supabase.table("users").select("id").or_(f"username.eq.{user_data.username},email.eq.{user_data.email}").execute()
+    username_clean = user_data.username.strip()
+    email_clean = user_data.email.strip().lower()
+
+    # Check if username or email already exists (case-insensitive)
+    res = supabase.table("users").select("id").or_(f"username.ilike.{username_clean},email.ilike.{email_clean}").execute()
     if res.data:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -57,8 +60,8 @@ def register(user_data: UserRegister):
         role = "OPERATOR"
 
     new_user_data = {
-        "username": user_data.username.strip(),
-        "email": user_data.email.strip().lower(),
+        "username": username_clean,
+        "email": email_clean,
         "hashed_password": hash_password(user_data.password),
         "full_name": user_data.full_name.strip(),
         "role": role,
@@ -80,11 +83,11 @@ def register(user_data: UserRegister):
 def login(credentials: UserLogin):
     ensure_default_users()
 
-    username_input = credentials.username.strip().lower()
-    # Support login with either username or email
-    res = supabase.table("users").select("*").eq("username", username_input).execute()
+    username_input = credentials.username.strip()
+    # Support login with either username or email (case-insensitive)
+    res = supabase.table("users").select("*").ilike("username", username_input).execute()
     if not res.data:
-        res = supabase.table("users").select("*").eq("email", username_input).execute()
+        res = supabase.table("users").select("*").ilike("email", username_input).execute()
 
     if not res.data:
         raise HTTPException(
@@ -120,8 +123,8 @@ def update_profile(
         update_fields["full_name"] = profile_data.full_name.strip()
     if profile_data.email is not None:
         new_email = profile_data.email.strip().lower()
-        # Check if email is already taken by another user
-        check = supabase.table("users").select("id").eq("email", new_email).neq("id", current_user["id"]).execute()
+        # Check if email is already taken by another user (case-insensitive)
+        check = supabase.table("users").select("id").ilike("email", new_email).neq("id", current_user["id"]).execute()
         if check.data:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already in use")
         update_fields["email"] = new_email

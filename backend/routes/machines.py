@@ -40,8 +40,8 @@ def create_machine(
     admin: CurrentUser = Depends(require_admin)
 ):
     name = machine_data.machine_name.strip()
-    # Check duplicate machine name
-    existing = supabase.table("machines").select("id").eq("machine_name", name).execute()
+    # Check duplicate machine name (case-insensitive)
+    existing = supabase.table("machines").select("id").ilike("machine_name", name).execute()
     if existing.data:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -81,7 +81,7 @@ def update_machine(
     update_fields: Dict[str, Any] = {}
     if machine_data.machine_name is not None:
         name = machine_data.machine_name.strip()
-        dup = supabase.table("machines").select("id").eq("machine_name", name).neq("id", machine_id).execute()
+        dup = supabase.table("machines").select("id").ilike("machine_name", name).neq("id", machine_id).execute()
         if dup.data:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Machine name already in use")
         update_fields["machine_name"] = name

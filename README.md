@@ -87,7 +87,7 @@ Ensure `.env` in the root project folder contains your Supabase credentials:
 
 ```env
 SUPABASE_URL="paste your url"
-SUPABASE_KEY="paate your key"
+SUPABASE_KEY="paste your key"
 
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=1440

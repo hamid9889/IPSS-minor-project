@@ -40,8 +40,8 @@ def create_product(
     admin: CurrentUser = Depends(require_admin)
 ):
     name = product_data.product_name.strip()
-    # Check duplicate product name
-    existing = supabase.table("products").select("id").eq("product_name", name).execute()
+    # Check duplicate product name (case-insensitive)
+    existing = supabase.table("products").select("id").ilike("product_name", name).execute()
     if existing.data:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -83,7 +83,7 @@ def update_product(
     update_fields: Dict[str, Any] = {}
     if product_data.product_name is not None:
         renamed = product_data.product_name.strip()
-        dup = supabase.table("products").select("id").eq("product_name", renamed).neq("id", product_id).execute()
+        dup = supabase.table("products").select("id").ilike("product_name", renamed).neq("id", product_id).execute()
         if dup.data:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Product name already in use")
         update_fields["product_name"] = renamed

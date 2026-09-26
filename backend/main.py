@@ -55,3 +55,8 @@ def health_check():
 # Serve frontend HTML, CSS, JS directly
 workspace_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 app.mount("/", StaticFiles(directory=workspace_dir, html=True), name="static")
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("backend.main:app", host="127.0.0.1", port=8000, reload=True)
+

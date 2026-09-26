@@ -458,9 +458,104 @@ body.dark-mode .access-badge {
 
     .form-box-header,
     #loginForm,
+    #registerForm,
     .demo-hint,
     .access-badge {
         padding-left: 20px;
         padding-right: 20px;
     }
+}
+
+/* ============================================================
+   REGISTRATION PAGE EXTENSIONS
+   ============================================================ */
+.register-form-box {
+    max-width: 640px;
+}
+
+#registerForm {
+    padding: 20px 32px 24px;
+}
+
+.form-row-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
+
+@media (max-width: 600px) {
+    .form-row-2 {
+        grid-template-columns: 1fr;
+        gap: 0;
+    }
+}
+
+.reg-section-title {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #374151;
+    margin: 16px 0 12px;
+    padding-bottom: 6px;
+    border-bottom: 1px dashed #d1d5db;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+body.dark-mode .reg-section-title {
+    color: #cbd5e1;
+    border-bottom-color: #334155;
+}
+
+.register-success {
+    margin: 14px 32px 0;
+    background-color: #dcfce7;
+    color: #15803d;
+    border: 1px solid #86efac;
+    border-radius: 7px;
+    padding: 10px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+}
+
+body.dark-mode .register-success {
+    background-color: rgba(22, 163, 74, 0.2);
+    color: #86efac;
+    border-color: rgba(134, 239, 172, 0.4);
+}
+
+.auth-switch-box {
+    margin-top: 18px;
+    text-align: center;
+    font-size: 13.5px;
+    color: #4b5563;
+    padding-top: 14px;
+    border-top: 1px solid #e5e7eb;
+}
+
+body.dark-mode .auth-switch-box {
+    color: #94a3b8;
+    border-top-color: #334155;
+}
+
+.auth-switch-link {
+    color: #2563eb;
+    font-weight: 600;
+    text-decoration: none;
+    margin-left: 4px;
+    transition: color 0.15s;
+}
+
+.auth-switch-link:hover {
+    color: #1d4ed8;
+    text-decoration: underline;
+}
+
+.auth-switch-link.user-mode {
+    color: #059669;
+}
+
+.auth-switch-link.user-mode:hover {
+    color: #047857;
 }

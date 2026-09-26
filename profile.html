@@ -147,12 +147,14 @@
                 </p>
                 <span
                   class="badge badge-success"
+                  id="profileHeaderStatusBadge"
                   style="font-size: 12px; padding: 4px 12px"
                   >Active Account</span
                 >
               </div>
               <div style="margin-left: auto">
                 <button
+                  id="btnToggleEditProfile"
                   onclick="toggleEditProfileForm()"
                   class="btn btn-primary"
                   style="background-color: #2563eb; color: #ffffff"
@@ -173,27 +175,45 @@
           <!-- Edit Profile Form (Collapsible / Toggleable) -->
           <div id="editProfileCard" class="card" style="display: none">
             <div class="card-header">
-              <h2 class="card-title">Edit Profile Information</h2>
+              <h2 class="card-title">✏️ Edit Profile Information</h2>
             </div>
 
             <form id="editProfileForm">
-              <div class="form-grid">
+              <!-- Section 1: Personal Information -->
+              <h3 style="font-size: 15px; font-weight: 600; color: var(--text-color); margin-bottom: 12px; padding-bottom: 6px; border-bottom: 1px dashed var(--border-color);">
+                👤 Personal Information
+              </h3>
+              <div class="form-grid" style="margin-bottom: 24px;">
                 <div class="form-group">
-                  <label for="editFullName">Full Name</label>
+                  <label for="editFullName">Full Name <span style="color: #ef4444;">*</span></label>
                   <input
                     type="text"
                     id="editFullName"
                     class="form-control"
+                    placeholder="Enter full name"
                     required
                   />
                 </div>
 
                 <div class="form-group">
-                  <label for="editEmail">Email Address</label>
+                  <label for="editUsername">Username (Read-Only)</label>
+                  <input
+                    type="text"
+                    id="editUsername"
+                    class="form-control"
+                    readonly
+                    disabled
+                    style="background-color: rgba(0,0,0,0.05); cursor: not-allowed;"
+                  />
+                </div>
+
+                <div class="form-group">
+                  <label for="editEmail">Email Address <span style="color: #ef4444;">*</span></label>
                   <input
                     type="email"
                     id="editEmail"
                     class="form-control"
+                    placeholder="name@company.com"
                     required
                   />
                 </div>
@@ -204,7 +224,7 @@
                     type="text"
                     id="editPhone"
                     class="form-control"
-                    required
+                    placeholder="+91 9876543210"
                   />
                 </div>
 
@@ -214,33 +234,119 @@
                     type="date"
                     id="editDob"
                     class="form-control"
-                    required
                   />
                 </div>
 
                 <div class="form-group">
                   <label for="editGender">Gender</label>
-                  <select id="editGender" class="form-control" required>
+                  <select id="editGender" class="form-control">
                     <option value="Male">Male</option>
                     <option value="Female">Female</option>
                     <option value="Other">Other</option>
                   </select>
                 </div>
 
-                <div class="form-group">
+                <div class="form-group" style="grid-column: 1 / -1;">
                   <label for="editAddress">Address</label>
                   <input
                     type="text"
                     id="editAddress"
                     class="form-control"
-                    required
+                    placeholder="Factory Section / Street Address, City"
                   />
                 </div>
               </div>
 
-              <div style="margin-top: 15px">
-                <button type="submit" class="btn btn-success">
-                  Save Changes
+              <!-- Section 2: Professional Information -->
+              <h3 style="font-size: 15px; font-weight: 600; color: var(--text-color); margin-bottom: 12px; padding-bottom: 6px; border-bottom: 1px dashed var(--border-color);">
+                ⚙️ Professional Information
+              </h3>
+              <div class="form-grid" style="margin-bottom: 24px;">
+                <div class="form-group">
+                  <label for="editEmpId">Employee ID</label>
+                  <input
+                    type="text"
+                    id="editEmpId"
+                    class="form-control"
+                    placeholder="e.g. IPSS-ADM-01"
+                  />
+                </div>
+
+                <div class="form-group">
+                  <label for="editDepartment">Department</label>
+                  <input
+                    type="text"
+                    id="editDepartment"
+                    class="form-control"
+                    placeholder="e.g. Production & Plant Management"
+                  />
+                </div>
+
+                <div class="form-group">
+                  <label for="editDesignation">Designation</label>
+                  <input
+                    type="text"
+                    id="editDesignation"
+                    class="form-control"
+                    placeholder="e.g. Production Manager"
+                  />
+                </div>
+
+                <div class="form-group">
+                  <label for="editJoiningDate">Joining Date</label>
+                  <input
+                    type="date"
+                    id="editJoiningDate"
+                    class="form-control"
+                  />
+                </div>
+
+                <div class="form-group" style="grid-column: 1 / -1;">
+                  <label for="editWorkLocation">Work Location</label>
+                  <input
+                    type="text"
+                    id="editWorkLocation"
+                    class="form-control"
+                    placeholder="e.g. Industrial Area Unit 1, Floor 2"
+                  />
+                </div>
+              </div>
+
+              <!-- Section 3: Account Information (Protected / Read-Only) -->
+              <h3 style="font-size: 15px; font-weight: 600; color: var(--text-color); margin-bottom: 12px; padding-bottom: 6px; border-bottom: 1px dashed var(--border-color);">
+                🔐 Account Information (System Controlled)
+              </h3>
+              <div class="form-grid" style="margin-bottom: 24px;">
+                <div class="form-group">
+                  <label for="editAccountStatus">Account Status</label>
+                  <input
+                    type="text"
+                    id="editAccountStatus"
+                    class="form-control"
+                    readonly
+                    disabled
+                    value="Active"
+                    style="background-color: rgba(0,0,0,0.05); cursor: not-allowed;"
+                  />
+                </div>
+
+                <div class="form-group">
+                  <label for="editRole">Account Type / Role</label>
+                  <input
+                    type="text"
+                    id="editRole"
+                    class="form-control"
+                    readonly
+                    disabled
+                    value="OPERATOR"
+                    style="background-color: rgba(0,0,0,0.05); cursor: not-allowed;"
+                  />
+                </div>
+              </div>
+
+              <div style="margin-top: 15px; display: flex; gap: 12px;">
+                <button type="submit" id="btnSaveProfile" class="btn btn-success">
+                  💾 Save Changes
                 </button>
                 <button
                   type="button"
@@ -431,7 +537,7 @@
                     "
                     >Joining Date</span
                   >
-                  <strong>2022-01-10</strong>
+                  <strong id="infoJoiningDate">2022-01-10</strong>
                 </div>
                 <div>
                   <span
@@ -444,7 +550,7 @@
                     "
                     >Work Location</span
                   >
-                  <strong>Facility #1, Sector B</strong>
+                  <strong id="infoWorkLocation">Facility #1, Sector B</strong>
                 </div>
               </div>
             </div>
@@ -473,7 +579,7 @@
                     "
                     >Account Status</span
                   >
-                  <span class="badge badge-success">Active</span>
+                  <span class="badge badge-success" id="infoAccountStatus">Active</span>
                 </div>
                 <div>
                   <span
@@ -486,7 +592,7 @@
                     "
                     >Account Created</span
                   >
-                  <strong>2022-01-10</strong>
+                  <strong id="infoAccountCreated">2022-01-10</strong>
                 </div>
                 <div>
                   <span
@@ -499,7 +605,7 @@
                     "
                     >Last Login</span
                   >
-                  <strong>Today (Active Session)</strong>
+                  <strong id="infoLastLogin">Today (Active Session)</strong>
                 </div>
                 <div>
                   <span
@@ -512,7 +618,7 @@
                     "
                     >Account Type</span
                   >
-                  <span class="badge badge-info">Administrator</span>
+                  <span class="badge badge-info" id="infoAccountType">Administrator</span>
                 </div>
               </div>
             </div>

@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - IPSS</title>
+    <link rel="icon" type="image/svg+xml" href="images/favicon.svg">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/login.css">
+</head>
+<body class="login-body">
+
+    <!-- Split Layout: Left Brand Panel + Right Form Panel -->
+    <div class="login-split">
+
+        <!-- LEFT: Brand Sidebar (matches dashboard sidebar exactly) -->
+        <aside class="login-brand-panel">
+            <div class="brand-logo">
+                <div class="brand-icon">&#9994;</div>
+                <div>
+                    <div class="brand-name">IPSS</div>
+                    <div class="brand-sub">Scheduling System</div>
+                </div>
+            </div>
+
+            <div class="brand-tagline">
+                <h2>Intelligent Product<br>Scheduling System</h2>
+                <p>Optimize your factory floor with smart scheduling and real-time machine monitoring.</p>
+            </div>
+
+            <div class="brand-features">
+                <div class="brand-feature-item">
+                    <span class="feat-icon">📊</span>
+                    <span>Live Dashboard & KPIs</span>
+                </div>
+                <div class="brand-feature-item">
+                    <span class="feat-icon">📅</span>
+                    <span>Automated Scheduling Engine</span>
+                </div>
+                <div class="brand-feature-item">
+                    <span class="feat-icon">🏭</span>
+                    <span>Machine Status Monitoring</span>
+                </div>
+                <div class="brand-feature-item">
+                    <span class="feat-icon">📈</span>
+                    <span>Production Analytics Reports</span>
+                </div>
+            </div>
+
+            <a href="index.html" class="brand-back-link">&larr; Back to Home</a>
+        </aside>
+
+        <!-- RIGHT: Registration Form Panel -->
+        <main class="login-form-panel">
+
+            <div class="login-form-box register-form-box">
+
+                <!-- Role Switcher Tab Bar -->
+                <div class="role-switcher-bar">
+                    <button type="button" class="role-tab active" id="btnRegisterAdmin" onclick="switchRegisterRole('admin')">
+                        🛡️ Admin
+                    </button>
+                    <button type="button" class="role-tab" id="btnRegisterUser" onclick="switchRegisterRole('user')">
+                        👤 Operator
+                    </button>
+                </div>
+
+                <!-- Form Header -->
+                <div class="form-box-header">
+                    <h1 id="registerTitle">Admin Registration</h1>
+                    <p id="registerSubtitle">Create administrator account</p>
+                </div>
+
+                <!-- Status Banners -->
+                <div id="registerErrorMessage" class="login-error" style="display:none;"></div>
+                <div id="registerSuccessMessage" class="register-success" style="display:none;"></div>
+
+                <!-- Registration Form -->
+                <form id="registerForm">
+                    <input type="hidden" id="registerSelectedRole" value="ADMIN">
+
+                    <!-- Section 1: Personal Information -->
+                    <div class="reg-section-title">
+                        <span>👤</span> Personal Information
+                    </div>
+
+                    <div class="form-row-2">
+                        <div class="field-group">
+                            <label for="regFullName">Full Name <span style="color: #ef4444;">*</span></label>
+                            <input type="text" id="regFullName" class="field-input" placeholder="e.g. John Doe" required autocomplete="name">
+                        </div>
+
+                        <div class="field-group">
+                            <label for="regUsername">Username <span style="color: #ef4444;">*</span></label>
+                            <input type="text" id="regUsername" class="field-input" placeholder="e.g. jdoe" required autocomplete="username">
+                        </div>
+                    </div>
+
+                    <div class="field-group">
+                        <label for="regEmail">Email Address <span style="color: #ef4444;">*</span></label>
+                        <input type="email" id="regEmail" class="field-input" placeholder="name@ipss.com" required autocomplete="email">
+                    </div>
+
+                    <div class="form-row-2">
+                        <div class="field-group">
+                            <label for="regPassword">Password <span style="color: #ef4444;">*</span></label>
+                            <input type="password" id="regPassword" class="field-input" placeholder="••••••••" required autocomplete="new-password">
+                        </div>
+
+                        <div class="field-group">
+                            <label for="regConfirmPassword">Confirm Password <span style="color: #ef4444;">*</span></label>
+                            <input type="password" id="regConfirmPassword" class="field-input" placeholder="••••••••" required autocomplete="new-password">
+                        </div>
+                    </div>
+
+                    <div class="form-row-2">
+                        <div class="field-group">
+                            <label for="regPhone">Phone Number</label>
+                            <input type="text" id="regPhone" class="field-input" placeholder="+91 9876543210" autocomplete="tel">
+                        </div>
+
+                        <div class="field-group">
+                            <label for="regDob">Date of Birth</label>
+                            <input type="date" id="regDob" class="field-input">
+                        </div>
+                    </div>
+
+                    <div class="form-row-2">
+                        <div class="field-group">
+                            <label for="regGender">Gender</label>
+                            <select id="regGender" class="field-input">
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+
+                        <div class="field-group">
+                            <label for="regAddress">Address</label>
+                            <input type="text" id="regAddress" class="field-input" placeholder="City / Plant Location">
+                        </div>
+                    </div>
+
+                    <!-- Section 2: Professional Information -->
+                    <div class="reg-section-title">
+                        <span>⚙️</span> Professional Information
+                    </div>
+
+                    <div class="form-row-2">
+                        <div class="field-group">
+                            <label for="regEmpId">Employee ID</label>
+                            <input type="text" id="regEmpId" class="field-input" placeholder="e.g. IPSS-ADM-02">
+                        </div>
+
+                        <div class="field-group">
+                            <label for="regDepartment">Department</label>
+                            <input type="text" id="regDepartment" class="field-input" placeholder="e.g. Operations">
+                        </div>
+                    </div>
+
+                    <div class="form-row-2">
+                        <div class="field-group">
+                            <label for="regDesignation">Designation</label>
+                            <input type="text" id="regDesignation" class="field-input" placeholder="e.g. Lead Engineer">
+                        </div>
+
+                        <div class="field-group">
+                            <label for="regJoiningDate">Joining Date</label>
+                            <input type="date" id="regJoiningDate" class="field-input">
+                        </div>
+                    </div>
+
+                    <div class="field-group">
+                        <label for="regWorkLocation">Work Location</label>
+                        <input type="text" id="regWorkLocation" class="field-input" placeholder="e.g. Plant Unit #1, Floor 2">
+                    </div>
+
+                    <!-- Section 3: Admin Authorization Key (Conditional) -->
+                    <div id="adminKeyGroup" class="field-group" style="margin-top: 10px; padding: 12px 14px; background: rgba(37,99,235,0.06); border: 1px solid rgba(37,99,235,0.25); border-radius: 8px;">
+                        <label for="adminSecretKey" style="color: #1e40af; font-weight: 700;">
+                            🛡️ Admin Authorization Key <span style="color: #ef4444;">*</span>
+                        </label>
+                        <input type="password" id="adminSecretKey" class="field-input" placeholder="Enter Administrator Security Key" autocomplete="off">
+                        <span style="font-size: 11.5px; color: #64748b; margin-top: 4px; display: block;">
+                            Required by backend security policy to create an Administrator account.
+                        </span>
+                    </div>
+
+                    <button type="submit" id="registerSubmitBtn" class="btn-sign-in" style="margin-top: 18px;">
+                        Create Admin Account &rarr;
+                    </button>
+
+                    <div class="auth-switch-box">
+                        Already have an account? <a href="login.html" class="auth-switch-link">Sign In</a>
+                    </div>
+                </form>
+
+            </div>
+        </main>
+    </div>
+
+    <script src="js/script.js"></script>
+</body>
+</html>

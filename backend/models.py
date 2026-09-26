@@ -18,6 +18,10 @@ class User:
     dob: str = ""
     gender: str = "Male"
     address: str = ""
+    joining_date: Optional[str] = None
+    work_location: Optional[str] = None
+    account_status: str = "Active"
+    last_login: Optional[datetime] = None
     created_at: Optional[datetime] = None
 
 

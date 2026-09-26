@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Union
 from pydantic import BaseModel, ConfigDict
 
 
@@ -10,13 +10,16 @@ class UserRegister(BaseModel):
     password: str
     full_name: str
     role: Optional[str] = "OPERATOR"
-    designation: Optional[str] = "Staff"
-    department: Optional[str] = "Production"
-    employee_id: Optional[str] = "IPSS-001"
+    designation: Optional[str] = ""
+    department: Optional[str] = ""
+    employee_id: Optional[str] = ""
     phone: Optional[str] = ""
     dob: Optional[str] = ""
     gender: Optional[str] = "Male"
     address: Optional[str] = ""
+    joining_date: Optional[str] = ""
+    work_location: Optional[str] = ""
+    admin_secret_key: Optional[str] = ""
 
 
 class UserLogin(BaseModel):
@@ -31,12 +34,17 @@ class UserProfileUpdate(BaseModel):
     dob: Optional[str] = None
     gender: Optional[str] = None
     address: Optional[str] = None
+    employee_id: Optional[str] = None
+    department: Optional[str] = None
+    designation: Optional[str] = None
+    joining_date: Optional[str] = None
+    work_location: Optional[str] = None
 
 
 class UserOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    id: int
+    id: Union[int, str]
     username: str
     email: str
     full_name: str
@@ -48,7 +56,11 @@ class UserOut(BaseModel):
     dob: Optional[str] = ""
     gender: Optional[str] = ""
     address: Optional[str] = ""
-    created_at: Optional[datetime] = None
+    joining_date: Optional[str] = ""
+    work_location: Optional[str] = ""
+    account_status: Optional[str] = "Active"
+    last_login: Optional[Union[datetime, str]] = None
+    created_at: Optional[Union[datetime, str]] = None
 
 
 class Token(BaseModel):

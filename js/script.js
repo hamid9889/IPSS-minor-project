@@ -39,7 +39,7 @@ async function apiFetch(endpoint, options = {}) {
 
         if (response.status === 401) {
             const currentPage = window.location.pathname.split('/').pop() || 'index.html';
-            if (currentPage !== 'login.html' && currentPage !== 'index.html') {
+            if (currentPage !== 'login.html' && currentPage !== 'index.html' && currentPage !== 'register.html') {
                 localStorage.removeItem('ipss_token');
                 localStorage.removeItem('ipss_user');
                 window.location.href = 'login.html';
@@ -135,7 +135,7 @@ function logout() {
 
 // --- Dynamic Role-Based Access Control (RBAC) Route Guard ---
 function checkAuth(currentPage) {
-    const publicPages = ['index.html', 'login.html', ''];
+    const publicPages = ['index.html', 'login.html', 'register.html', ''];
     const isPublic = publicPages.includes(currentPage);
     const currentUser = getCurrentUser();
     const token = getAuthToken();
@@ -283,6 +283,8 @@ document.addEventListener('DOMContentLoaded', function () {
         setupEditProfileForm();
     } else if (currentPage === 'login.html') {
         setupLoginForm();
+    } else if (currentPage === 'register.html') {
+        setupRegisterForm();
     }
 });
 
@@ -319,6 +321,8 @@ function switchLoginRole(role) {
         if (demoText) demoText.innerHTML = '⚡ Demo: <strong>admin</strong> / <strong>admin123</strong> — click to fill';
         if (submitBtn) { submitBtn.className = 'btn-sign-in'; submitBtn.textContent = 'Sign In →'; }
         if (permDetails) permDetails.textContent = 'Dashboard • Products • Machines • Orders • Schedule • Reports • Profile';
+        const regLink = document.getElementById('linkToRegister');
+        if (regLink) regLink.className = 'auth-switch-link';
     } else {
         if (btnAdmin) btnAdmin.className = 'role-tab';
         if (btnUser) btnUser.className = 'role-tab active user-active';
@@ -329,6 +333,8 @@ function switchLoginRole(role) {
         if (demoText) demoText.innerHTML = '⚡ Demo: <strong>user</strong> / <strong>user123</strong> — click to fill';
         if (submitBtn) { submitBtn.className = 'btn-sign-in user-mode'; submitBtn.textContent = 'Sign In →'; }
         if (permDetails) permDetails.textContent = 'Dashboard • Products (View Only) • Reports • Profile';
+        const regLink = document.getElementById('linkToRegister');
+        if (regLink) regLink.className = 'auth-switch-link user-mode';
     }
 }
 
@@ -437,36 +443,103 @@ async function loadProfile() {
         const profile = await apiFetch('/api/auth/me');
         if (!profile) return;
 
-        // Update stored user
+        // Update stored user in localStorage
         localStorage.setItem('ipss_user', JSON.stringify(profile));
 
-        const initials = (profile.full_name || profile.fullName || 'User')
-            .split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+        const fullName = profile.full_name || profile.fullName || 'User';
+        const initials = fullName.split(' ').map(n => n[0]).filter(Boolean).join('').substring(0, 2).toUpperCase() || 'U';
 
+        // Banner Header
         if (document.getElementById('profileAvatarLarge')) document.getElementById('profileAvatarLarge').textContent = initials;
-        if (document.getElementById('profileHeaderFullName')) document.getElementById('profileHeaderFullName').textContent = profile.full_name || profile.fullName;
-        if (document.getElementById('profileHeaderUsername')) document.getElementById('profileHeaderUsername').textContent = profile.username;
-        if (document.getElementById('profileHeaderRole')) document.getElementById('profileHeaderRole').textContent = profile.designation;
+        if (document.getElementById('profileHeaderFullName')) document.getElementById('profileHeaderFullName').textContent = fullName;
+        if (document.getElementById('profileHeaderUsername')) document.getElementById('profileHeaderUsername').textContent = profile.username || '';
+        if (document.getElementById('profileHeaderRole')) {
+            document.getElementById('profileHeaderRole').textContent = profile.designation || (profile.role === 'ADMIN' ? 'Administrator' : 'Operator');
+        }
 
-        if (document.getElementById('infoFullName')) document.getElementById('infoFullName').textContent = profile.full_name || profile.fullName;
-        if (document.getElementById('infoUsername')) document.getElementById('infoUsername').textContent = profile.username;
-        if (document.getElementById('infoEmail')) document.getElementById('infoEmail').textContent = profile.email;
+        const bannerBadge = document.getElementById('profileHeaderStatusBadge');
+        if (bannerBadge) {
+            const statusText = profile.account_status || 'Active';
+            bannerBadge.textContent = statusText + ' Account';
+            bannerBadge.className = statusText.toLowerCase() === 'active' ? 'badge badge-success' : 'badge badge-danger';
+        }
+
+        // 1. Personal Information Card
+        if (document.getElementById('infoFullName')) document.getElementById('infoFullName').textContent = fullName;
+        if (document.getElementById('infoUsername')) document.getElementById('infoUsername').textContent = profile.username || 'N/A';
+        if (document.getElementById('infoEmail')) document.getElementById('infoEmail').textContent = profile.email || 'N/A';
         if (document.getElementById('infoPhone')) document.getElementById('infoPhone').textContent = profile.phone || 'N/A';
         if (document.getElementById('infoDob')) document.getElementById('infoDob').textContent = profile.dob || 'N/A';
         if (document.getElementById('infoGender')) document.getElementById('infoGender').textContent = profile.gender || 'N/A';
         if (document.getElementById('infoAddress')) document.getElementById('infoAddress').textContent = profile.address || 'N/A';
 
-        if (document.getElementById('infoEmpId')) document.getElementById('infoEmpId').textContent = profile.employee_id || profile.employeeId || 'IPSS-001';
-        if (document.getElementById('infoDepartment')) document.getElementById('infoDepartment').textContent = profile.department || 'Operations';
-        if (document.getElementById('infoDesignation')) document.getElementById('infoDesignation').textContent = profile.designation || 'Staff';
+        // 2. Professional Information Card
+        if (document.getElementById('infoEmpId')) document.getElementById('infoEmpId').textContent = profile.employee_id || 'N/A';
+        if (document.getElementById('infoDepartment')) document.getElementById('infoDepartment').textContent = profile.department || 'N/A';
+        if (document.getElementById('infoDesignation')) document.getElementById('infoDesignation').textContent = profile.designation || 'N/A';
+        if (document.getElementById('infoJoiningDate')) document.getElementById('infoJoiningDate').textContent = profile.joining_date || 'N/A';
+        if (document.getElementById('infoWorkLocation')) document.getElementById('infoWorkLocation').textContent = profile.work_location || 'N/A';
 
-        // Populate Edit Form
-        if (document.getElementById('editFullName')) document.getElementById('editFullName').value = profile.full_name || profile.fullName || '';
+        // 3. Account Information Card
+        const accStatus = document.getElementById('infoAccountStatus');
+        if (accStatus) {
+            const s = profile.account_status || 'Active';
+            accStatus.textContent = s;
+            accStatus.className = s.toLowerCase() === 'active' ? 'badge badge-success' : 'badge badge-danger';
+        }
+
+        const accCreated = document.getElementById('infoAccountCreated');
+        if (accCreated) {
+            if (profile.created_at) {
+                const cd = new Date(profile.created_at);
+                accCreated.textContent = isNaN(cd.getTime()) ? profile.created_at : cd.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+            } else {
+                accCreated.textContent = 'N/A';
+            }
+        }
+
+        const lastLoginEl = document.getElementById('infoLastLogin');
+        if (lastLoginEl) {
+            if (profile.last_login) {
+                const ld = new Date(profile.last_login);
+                if (!isNaN(ld.getTime())) {
+                    const datePart = ld.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+                    const timePart = ld.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+                    lastLoginEl.textContent = `${datePart} ${timePart} (Active Session)`;
+                } else {
+                    lastLoginEl.textContent = `${profile.last_login} (Active Session)`;
+                }
+            } else {
+                lastLoginEl.textContent = 'Today (Active Session)';
+            }
+        }
+
+        const accType = document.getElementById('infoAccountType');
+        if (accType) {
+            const isAdmin = (profile.role || '').toUpperCase() === 'ADMIN';
+            accType.textContent = isAdmin ? 'Administrator' : 'Operator';
+            accType.className = isAdmin ? 'badge badge-info' : 'badge badge-success';
+        }
+
+        // Populate Edit Profile Form
+        if (document.getElementById('editFullName')) document.getElementById('editFullName').value = fullName;
+        if (document.getElementById('editUsername')) document.getElementById('editUsername').value = profile.username || '';
         if (document.getElementById('editEmail')) document.getElementById('editEmail').value = profile.email || '';
         if (document.getElementById('editPhone')) document.getElementById('editPhone').value = profile.phone || '';
         if (document.getElementById('editDob')) document.getElementById('editDob').value = profile.dob || '';
         if (document.getElementById('editGender')) document.getElementById('editGender').value = profile.gender || 'Male';
         if (document.getElementById('editAddress')) document.getElementById('editAddress').value = profile.address || '';
+
+        if (document.getElementById('editEmpId')) document.getElementById('editEmpId').value = profile.employee_id || '';
+        if (document.getElementById('editDepartment')) document.getElementById('editDepartment').value = profile.department || '';
+        if (document.getElementById('editDesignation')) document.getElementById('editDesignation').value = profile.designation || '';
+        if (document.getElementById('editJoiningDate')) document.getElementById('editJoiningDate').value = profile.joining_date || '';
+        if (document.getElementById('editWorkLocation')) document.getElementById('editWorkLocation').value = profile.work_location || '';
+
+        if (document.getElementById('editAccountStatus')) document.getElementById('editAccountStatus').value = profile.account_status || 'Active';
+        if (document.getElementById('editRole')) document.getElementById('editRole').value = (profile.role || 'OPERATOR').toUpperCase();
+
+        updateHeaderProfileInfo();
     } catch (err) {
         console.error('Failed to load profile from backend:', err);
     }
@@ -475,7 +548,7 @@ async function loadProfile() {
 function toggleEditProfileForm() {
     const editCard = document.getElementById('editProfileCard');
     if (editCard) {
-        const isHidden = editCard.style.display === 'none';
+        const isHidden = editCard.style.display === 'none' || editCard.style.display === '';
         editCard.style.display = isHidden ? 'block' : 'none';
         if (isHidden) {
             editCard.scrollIntoView({ behavior: 'smooth' });
@@ -490,37 +563,245 @@ function setupEditProfileForm() {
     form.addEventListener('submit', async function (event) {
         event.preventDefault();
 
+        const saveBtn = document.getElementById('btnSaveProfile');
+        const alertBox = document.getElementById('profileAlertMsg');
+
+        const fullName = (document.getElementById('editFullName')?.value || '').trim();
+        const email = (document.getElementById('editEmail')?.value || '').trim();
+
+        if (!fullName) {
+            alert('Full name is required.');
+            return;
+        }
+        if (!email) {
+            alert('Valid email address is required.');
+            return;
+        }
+
         const payload = {
-            full_name: document.getElementById('editFullName').value.trim(),
-            email: document.getElementById('editEmail').value.trim(),
-            phone: document.getElementById('editPhone').value.trim(),
-            dob: document.getElementById('editDob').value,
-            gender: document.getElementById('editGender').value,
-            address: document.getElementById('editAddress').value.trim()
+            full_name: fullName,
+            email: email,
+            phone: (document.getElementById('editPhone')?.value || '').trim(),
+            dob: document.getElementById('editDob')?.value || '',
+            gender: document.getElementById('editGender')?.value || 'Male',
+            address: (document.getElementById('editAddress')?.value || '').trim(),
+            employee_id: (document.getElementById('editEmpId')?.value || '').trim(),
+            department: (document.getElementById('editDepartment')?.value || '').trim(),
+            designation: (document.getElementById('editDesignation')?.value || '').trim(),
+            joining_date: document.getElementById('editJoiningDate')?.value || '',
+            work_location: (document.getElementById('editWorkLocation')?.value || '').trim()
         };
 
+        if (saveBtn) {
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'Saving Changes...';
+        }
+
         try {
-            const updatedUser = await apiFetch('/api/auth/profile', {
+            await apiFetch('/api/auth/profile', {
                 method: 'PUT',
                 body: JSON.stringify(payload)
             });
 
-            localStorage.setItem('ipss_user', JSON.stringify(updatedUser));
+            // 1. Reload the latest user information from GET /api/auth/me
             await loadProfile();
-            updateHeaderProfileInfo();
 
-            const alertBox = document.getElementById('profileAlertMsg');
+            // 2. Show: "Profile updated successfully."
             if (alertBox) {
-                alertBox.textContent = '✅ Profile updated successfully in database.';
+                alertBox.className = 'alert-box alert-success';
+                alertBox.textContent = '✅ Profile updated successfully.';
                 alertBox.style.display = 'flex';
                 setTimeout(() => { alertBox.style.display = 'none'; }, 4000);
+            }
+            showToast('Success', 'Profile updated successfully.', 'success');
+
+            // 3. Close the edit form
+            const editCard = document.getElementById('editProfileCard');
+            if (editCard) editCard.style.display = 'none';
+
+        } catch (err) {
+            console.error('Profile update failed:', err);
+            const errMsg = err.message || 'Failed to update profile';
+            if (alertBox) {
+                alertBox.className = 'alert-box alert-danger';
+                alertBox.textContent = `❌ ${errMsg}`;
+                alertBox.style.display = 'flex';
             } else {
-                showToast('Success', 'Profile updated successfully.', 'success');
+                alert(errMsg);
+            }
+            showToast('Update Failed', errMsg, 'error');
+        } finally {
+            if (saveBtn) {
+                saveBtn.disabled = false;
+                saveBtn.textContent = '💾 Save Changes';
+            }
+        }
+    });
+}
+
+
+// ==========================================
+// REGISTRATION PAGE LOGIC
+// ==========================================
+let activeRegisterRole = 'admin';
+
+function switchRegisterRole(role) {
+    activeRegisterRole = role;
+    const btnAdmin = document.getElementById('btnRegisterAdmin');
+    const btnUser = document.getElementById('btnRegisterUser');
+    const hiddenRole = document.getElementById('registerSelectedRole');
+    const regTitle = document.getElementById('registerTitle');
+    const regSubtitle = document.getElementById('registerSubtitle');
+    const submitBtn = document.getElementById('registerSubmitBtn');
+    const adminKeyGroup = document.getElementById('adminKeyGroup');
+    const errorBanner = document.getElementById('registerErrorMessage');
+    const successBanner = document.getElementById('registerSuccessMessage');
+
+    if (errorBanner) errorBanner.style.display = 'none';
+    if (successBanner) successBanner.style.display = 'none';
+    if (hiddenRole) hiddenRole.value = role === 'admin' ? 'ADMIN' : 'OPERATOR';
+
+    if (role === 'admin') {
+        if (btnAdmin) btnAdmin.className = 'role-tab active';
+        if (btnUser) btnUser.className = 'role-tab';
+        if (regTitle) regTitle.textContent = 'Admin Registration';
+        if (regSubtitle) regSubtitle.textContent = 'Create administrator account';
+        if (submitBtn) { submitBtn.className = 'btn-sign-in'; submitBtn.textContent = 'Create Admin Account →'; }
+        if (adminKeyGroup) adminKeyGroup.style.display = 'block';
+    } else {
+        if (btnAdmin) btnAdmin.className = 'role-tab';
+        if (btnUser) btnUser.className = 'role-tab active user-active';
+        if (regTitle) regTitle.textContent = 'Operator Registration';
+        if (regSubtitle) regSubtitle.textContent = 'Create operator account';
+        if (submitBtn) { submitBtn.className = 'btn-sign-in user-mode'; submitBtn.textContent = 'Create Operator Account →'; }
+        if (adminKeyGroup) {
+            adminKeyGroup.style.display = 'none';
+            const adminKeyInput = document.getElementById('adminSecretKey');
+            if (adminKeyInput) adminKeyInput.value = '';
+        }
+    }
+}
+
+function setupRegisterForm() {
+    const regForm = document.getElementById('registerForm');
+    if (!regForm) return;
+
+    regForm.addEventListener('submit', async function (event) {
+        event.preventDefault();
+
+        const errorBanner = document.getElementById('registerErrorMessage');
+        const successBanner = document.getElementById('registerSuccessMessage');
+        const submitBtn = document.getElementById('registerSubmitBtn');
+
+        if (errorBanner) errorBanner.style.display = 'none';
+        if (successBanner) successBanner.style.display = 'none';
+
+        const fullName = (document.getElementById('regFullName')?.value || '').trim();
+        const username = (document.getElementById('regUsername')?.value || '').trim();
+        const email = (document.getElementById('regEmail')?.value || '').trim();
+        const password = (document.getElementById('regPassword')?.value || '').trim();
+        const confirmPassword = (document.getElementById('regConfirmPassword')?.value || '').trim();
+        const phone = (document.getElementById('regPhone')?.value || '').trim();
+        const dob = document.getElementById('regDob')?.value || '';
+        const gender = document.getElementById('regGender')?.value || 'Male';
+        const address = (document.getElementById('regAddress')?.value || '').trim();
+
+        const employeeId = (document.getElementById('regEmpId')?.value || '').trim();
+        const department = (document.getElementById('regDepartment')?.value || '').trim();
+        const designation = (document.getElementById('regDesignation')?.value || '').trim();
+        const joiningDate = document.getElementById('regJoiningDate')?.value || '';
+        const workLocation = (document.getElementById('regWorkLocation')?.value || '').trim();
+
+        const role = (document.getElementById('registerSelectedRole')?.value || (activeRegisterRole === 'admin' ? 'ADMIN' : 'OPERATOR')).toUpperCase();
+        const adminSecretKey = (document.getElementById('adminSecretKey')?.value || '').trim();
+
+        if (!fullName || !username || !email || !password || !confirmPassword) {
+            if (errorBanner) {
+                errorBanner.textContent = 'Please fill all required fields.';
+                errorBanner.style.display = 'block';
+            }
+            return;
+        }
+
+        if (password !== confirmPassword) {
+            if (errorBanner) {
+                errorBanner.textContent = 'Passwords do not match.';
+                errorBanner.style.display = 'block';
+            }
+            return;
+        }
+
+        if (password.length < 4) {
+            if (errorBanner) {
+                errorBanner.textContent = 'Password must be at least 4 characters.';
+                errorBanner.style.display = 'block';
+            }
+            return;
+        }
+
+        if (role === 'ADMIN' && !adminSecretKey) {
+            if (errorBanner) {
+                errorBanner.textContent = 'Admin Security Key is required for administrator accounts.';
+                errorBanner.style.display = 'block';
+            }
+            return;
+        }
+
+        const payload = {
+            username,
+            email,
+            password,
+            full_name: fullName,
+            role,
+            designation,
+            department,
+            employee_id: employeeId,
+            phone,
+            dob,
+            gender,
+            address,
+            joining_date: joiningDate,
+            work_location: workLocation,
+            admin_secret_key: adminSecretKey
+        };
+
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Creating Account...';
+        }
+
+        try {
+            await apiFetch('/api/auth/register', {
+                method: 'POST',
+                body: JSON.stringify(payload)
+            });
+
+            if (successBanner) {
+                successBanner.textContent = '✅ Registration successful. Please sign in.';
+                successBanner.style.display = 'block';
             }
 
-            toggleEditProfileForm();
+            regForm.reset();
+
+            // Redirect to login after 1.5 seconds
+            setTimeout(() => {
+                window.location.href = 'login.html';
+            }, 1500);
+
         } catch (err) {
-            alert('Failed to update profile: ' + err.message);
+            console.error('Registration error:', err);
+            const msg = err.message || 'Registration failed.';
+            if (errorBanner) {
+                errorBanner.textContent = `❌ ${msg}`;
+                errorBanner.style.display = 'block';
+            } else {
+                alert(msg);
+            }
+        } finally {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = role === 'ADMIN' ? 'Create Admin Account →' : 'Create Operator Account →';
+            }
         }
     });
 }

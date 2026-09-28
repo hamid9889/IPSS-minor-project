@@ -17,18 +17,39 @@ from backend.auth import (
 
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 
-ADMIN_REGISTRATION_KEY = os.getenv("ADMIN_REGISTRATION_KEY", "IPSS-ADMIN-2026")
+def verify_admin_authorization_key(key: str) -> bool:
+    """
+    Verify an Admin Authorization Key using Supabase RPC public.verify_admin_key.
+    Returns True if key is valid and active, False otherwise.
+    """
+    clean_key = (key or "").strip()
+    if not clean_key:
+        return False
+    try:
+        res = supabase.rpc("verify_admin_key", {"input_key": clean_key}).execute()
+        if bool(res.data):
+            return True
+        if clean_key.upper() != clean_key:
+            res_upper = supabase.rpc("verify_admin_key", {"input_key": clean_key.upper()}).execute()
+            if bool(res_upper.data):
+                return True
+        return False
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Database error during authorization key verification: {str(e)}"
+        )
 
 def ensure_default_users():
-    """Seed default demo accounts if users table is empty."""
+    """Ensure default admin and operator accounts exist."""
     try:
-        check = supabase.table("users").select("id").limit(1).execute()
-        if not check.data:
+        admin_check = supabase.table("users").select("id").ilike("username", "admin").execute()
+        if not admin_check.data:
             admin_data = {
                 "username": "admin",
                 "email": "admin@ipss.com",
                 "hashed_password": hash_password("admin123"),
-                "full_name": "Admin User",
+                "full_name": "Chief Administrator",
                 "role": "ADMIN",
                 "designation": "Production Manager",
                 "department": "Production & Plant Management",
@@ -39,6 +60,10 @@ def ensure_default_users():
                 "address": "Industrial Area Unit 1, Lucknow",
                 "account_status": "Active"
             }
+            supabase.table("users").insert(admin_data).execute()
+
+        op_check = supabase.table("users").select("id").ilike("username", "user").execute()
+        if not op_check.data:
             operator_data = {
                 "username": "user",
                 "email": "user@ipss.com",
@@ -54,7 +79,7 @@ def ensure_default_users():
                 "address": "Assembly Section B, Floor 2, Lucknow",
                 "account_status": "Active"
             }
-            supabase.table("users").insert([admin_data, operator_data]).execute()
+            supabase.table("users").insert(operator_data).execute()
     except Exception:
         pass
 
@@ -81,22 +106,18 @@ def register(user_data: UserRegister, authorization: Optional[str] = Header(None
             detail="Invalid role. Allowed roles are ADMIN or OPERATOR."
         )
 
-    # Protect ADMIN registration from unauthorized creation
+    # Protect ADMIN registration: require valid Supabase Admin Authorization Key
     if raw_role == "ADMIN":
-        key_provided = (user_data.admin_secret_key or "").strip()
-        is_authorized = (key_provided == ADMIN_REGISTRATION_KEY)
-        if not is_authorized and authorization and authorization.startswith("Bearer "):
-            token = authorization.split(" ")[1]
-            try:
-                payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-                if payload.get("role") == "ADMIN":
-                    is_authorized = True
-            except Exception:
-                pass
-        if not is_authorized:
+        key_provided = (user_data.admin_key or user_data.admin_secret_key or "").strip()
+        if not key_provided:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Admin Authorization Key is required for administrator registration."
+            )
+        if not verify_admin_authorization_key(key_provided):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Administrator registration requires a valid Admin Security Key."
+                detail="Invalid Admin Authorization Key. Administrator registration denied."
             )
 
     # Check duplicate username
@@ -156,7 +177,15 @@ def register(user_data: UserRegister, authorization: Optional[str] = Header(None
 def login(credentials: UserLogin):
     ensure_default_users()
 
-    username_input = credentials.username.strip()
+    username_input = (credentials.username or "").strip()
+    password_input = credentials.password or ""
+
+    if not username_input or not password_input:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Username and password are required."
+        )
+
     # Support login with either username or email (case-insensitive)
     res = supabase.table("users").select("*").ilike("username", username_input).execute()
     if not res.data:
@@ -169,11 +198,42 @@ def login(credentials: UserLogin):
         )
 
     user = res.data[0]
-    if not verify_password(credentials.password, user["hashed_password"]):
+    if not verify_password(password_input, user.get("hashed_password", "")):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid username or password"
         )
+
+    # Check account active status
+    if (user.get("account_status") or "Active").lower() != "active":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Account is inactive or suspended. Please contact administrator."
+        )
+
+    user_role = (user.get("role") or "").upper()
+    req_role = (credentials.role or "").strip().upper()
+
+    # Reject if Operator attempts to sign in through Admin portal
+    if req_role == "ADMIN" and user_role != "ADMIN":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied: Operator accounts cannot sign in through the Admin portal."
+        )
+
+    # Enforce Admin Authorization Key for Admin accounts
+    if user_role == "ADMIN":
+        admin_key = (credentials.admin_key or credentials.admin_secret_key or "").strip()
+        if not admin_key:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Admin Authorization Key is required for administrator sign in."
+            )
+        if not verify_admin_authorization_key(admin_key):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid Admin Authorization Key. Access denied."
+            )
 
     # Update last_login timestamp upon successful login
     now_iso = datetime.now(timezone.utc).isoformat()

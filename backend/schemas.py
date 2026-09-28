@@ -20,11 +20,15 @@ class UserRegister(BaseModel):
     joining_date: Optional[str] = ""
     work_location: Optional[str] = ""
     admin_secret_key: Optional[str] = ""
+    admin_key: Optional[str] = ""
 
 
 class UserLogin(BaseModel):
     username: str
     password: str
+    admin_key: Optional[str] = None
+    admin_secret_key: Optional[str] = None
+    role: Optional[str] = None
 
 
 class UserProfileUpdate(BaseModel):

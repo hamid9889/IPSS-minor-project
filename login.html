@@ -1,13 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sign In - IPSS</title>
-    <link rel="icon" type="image/svg+xml" href="images/favicon.svg">
+    <link rel="icon" type="image/png" href="images/favicon.png">
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/login.css">
 </head>
+
 <body class="login-body">
 
     <!-- Split Layout: Left Brand Panel + Right Form Panel -->
@@ -16,7 +18,6 @@
         <!-- LEFT: Brand Sidebar (matches dashboard sidebar exactly) -->
         <aside class="login-brand-panel">
             <div class="brand-logo">
-                <div class="brand-icon">&#9994;</div>
                 <div>
                     <div class="brand-name">IPSS</div>
                     <div class="brand-sub">Scheduling System</div>
@@ -75,19 +76,31 @@
                 <div id="loginErrorMessage" class="login-error" style="display:none;"></div>
 
                 <!-- Login Form -->
-                <form id="loginForm" onsubmit="return handleFormSubmit(event)">
+                <form id="loginForm">
                     <input type="hidden" id="selectedRole" value="admin">
 
                     <div class="field-group">
-                        <label for="username">Username</label>
-                        <input type="text" id="username" class="field-input" placeholder="admin" value="admin" required autocomplete="username">
+                        <label for="username">Username or Email</label>
+                        <input type="text" id="username" class="field-input" placeholder="Enter username or email" value=""
+                            autocomplete="username" required>
                     </div>
-
                     <div class="field-group">
                         <label for="password">Password</label>
                         <div class="password-wrap">
-                            <input type="password" id="password" class="field-input" placeholder="••••••••" value="admin123" required autocomplete="current-password">
-                            <button type="button" class="pwd-toggle" id="pwdToggleBtn" onclick="togglePasswordVisibility()">👁️</button>
+                            <input type="password" id="password" class="field-input" placeholder="" value="" required
+                                autocomplete="current-password">
+                            <button type="button" class="pwd-toggle" id="pwdToggleBtn"
+                                onclick="togglePasswordVisibility()">👁️</button>
+                        </div>
+                    </div>
+
+                    <div class="field-group" id="adminKeyLoginGroup">
+                        <label for="adminAuthKey">Admin Authorization Key <span style="color: #ef4444;">*</span></label>
+                        <div class="password-wrap">
+                            <input type="password" id="adminAuthKey" class="field-input" placeholder="Enter Authorization Key"
+                                autocomplete="off">
+                            <button type="button" class="pwd-toggle" id="adminKeyToggleBtn"
+                                onclick="toggleAdminKeyVisibility()">👁️</button>
                         </div>
                     </div>
 
@@ -95,7 +108,8 @@
                         <label class="remember-check">
                             <input type="checkbox" id="rememberMe" checked> Remember me
                         </label>
-                        <a href="javascript:void(0)" class="forgot-link" onclick="handleForgotPassword(event)">Forgot password?</a>
+                        <a href="javascript:void(0)" class="forgot-link" onclick="handleForgotPassword(event)">Forgot
+                            password?</a>
                     </div>
 
                     <button type="submit" id="loginSubmitBtn" class="btn-sign-in">
@@ -103,18 +117,17 @@
                     </button>
 
                     <div class="auth-switch-box">
-                        Don't have an account? <a href="register.html" class="auth-switch-link" id="linkToRegister">Create Account</a>
+                        Don't have an account? <a href="register.html" class="auth-switch-link"
+                            id="linkToRegister">Create Account</a>
                     </div>
                 </form>
 
-                <!-- Quick demo hint -->
-                <div class="demo-hint" onclick="fillDemoCredentials()">
-                    <span id="demoCredText">⚡ Demo: <strong>admin</strong> / <strong>admin123</strong> — click to fill</span>
-                </div>
+
 
                 <!-- Access summary -->
                 <div class="access-badge" id="rolePermissionsHint">
-                    <span id="permDetailsText">Dashboard • Products • Machines • Orders • Schedule • Reports • Profile</span>
+                    <span id="permDetailsText">Dashboard • Products • Machines • Orders • Schedule • Reports •
+                        Profile</span>
                 </div>
 
             </div>
@@ -123,4 +136,5 @@
 
     <script src="js/script.js"></script>
 </body>
+
 </html>

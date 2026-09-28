@@ -37,24 +37,29 @@ async function apiFetch(endpoint, options = {}) {
             headers
         });
 
-        if (response.status === 401) {
-            const currentPage = window.location.pathname.split('/').pop() || 'index.html';
-            if (currentPage !== 'login.html' && currentPage !== 'index.html' && currentPage !== 'register.html') {
-                localStorage.removeItem('ipss_token');
-                localStorage.removeItem('ipss_user');
-                window.location.href = 'login.html';
-            }
-            throw new Error('Unauthorized');
-        }
-
-        if (response.status === 403) {
-            showToast('Permission Denied', 'You do not have administrative privileges for this operation.', 'error');
-            throw new Error('Forbidden');
-        }
-
         if (!response.ok) {
             const errData = await response.json().catch(() => ({}));
-            throw new Error(errData.detail || `Request failed with status ${response.status}`);
+            const detailMsg = errData.detail || errData.message || (response.status === 401 ? 'Unauthorized' : response.status === 403 ? 'Forbidden' : `Request failed with status ${response.status}`);
+
+            if (response.status === 401) {
+                const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+                if (currentPage !== 'login.html' && currentPage !== 'index.html' && currentPage !== 'register.html') {
+                    localStorage.removeItem('ipss_token');
+                    localStorage.removeItem('ipss_user');
+                    window.location.href = 'login.html';
+                }
+                throw new Error(detailMsg);
+            }
+
+            if (response.status === 403) {
+                const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+                if (currentPage !== 'login.html' && currentPage !== 'register.html') {
+                    showToast('Permission Denied', detailMsg || 'You do not have administrative privileges for this operation.', 'error');
+                }
+                throw new Error(detailMsg);
+            }
+
+            throw new Error(detailMsg);
         }
 
         return await response.json();
@@ -303,6 +308,8 @@ function switchLoginRole(role) {
     const loginSubtitle = document.getElementById('loginSubtitle');
     const usernameInput = document.getElementById('username');
     const passwordInput = document.getElementById('password');
+    const adminKeyGroup = document.getElementById('adminKeyLoginGroup');
+    const adminKeyInput = document.getElementById('adminAuthKey');
     const demoText = document.getElementById('demoCredText');
     const submitBtn = document.getElementById('loginSubmitBtn');
     const permDetails = document.getElementById('permDetailsText');
@@ -316,8 +323,10 @@ function switchLoginRole(role) {
         if (btnUser) btnUser.className = 'role-tab';
         if (loginTitle) loginTitle.textContent = 'Admin Sign In';
         if (loginSubtitle) loginSubtitle.textContent = 'Full access to all modules';
-        if (usernameInput) { usernameInput.value = 'admin'; usernameInput.classList.remove('user-mode'); }
-        if (passwordInput) { passwordInput.value = 'admin123'; passwordInput.classList.remove('user-mode'); }
+        if (usernameInput) usernameInput.classList.remove('user-mode');
+        if (passwordInput) passwordInput.classList.remove('user-mode');
+        if (adminKeyGroup) adminKeyGroup.style.display = 'block';
+        if (adminKeyInput) adminKeyInput.required = true;
         if (demoText) demoText.innerHTML = '⚡ Demo: <strong>admin</strong> / <strong>admin123</strong> — click to fill';
         if (submitBtn) { submitBtn.className = 'btn-sign-in'; submitBtn.textContent = 'Sign In →'; }
         if (permDetails) permDetails.textContent = 'Dashboard • Products • Machines • Orders • Schedule • Reports • Profile';
@@ -328,8 +337,10 @@ function switchLoginRole(role) {
         if (btnUser) btnUser.className = 'role-tab active user-active';
         if (loginTitle) loginTitle.textContent = 'Operator Sign In';
         if (loginSubtitle) loginSubtitle.textContent = 'Access Dashboard, Products & Reports';
-        if (usernameInput) { usernameInput.value = 'user'; usernameInput.classList.add('user-mode'); }
-        if (passwordInput) { passwordInput.value = 'user123'; passwordInput.classList.add('user-mode'); }
+        if (usernameInput) usernameInput.classList.add('user-mode');
+        if (passwordInput) passwordInput.classList.add('user-mode');
+        if (adminKeyGroup) adminKeyGroup.style.display = 'none';
+        if (adminKeyInput) adminKeyInput.required = false;
         if (demoText) demoText.innerHTML = '⚡ Demo: <strong>user</strong> / <strong>user123</strong> — click to fill';
         if (submitBtn) { submitBtn.className = 'btn-sign-in user-mode'; submitBtn.textContent = 'Sign In →'; }
         if (permDetails) permDetails.textContent = 'Dashboard • Products (View Only) • Reports • Profile';
@@ -341,13 +352,16 @@ function switchLoginRole(role) {
 function fillDemoCredentials() {
     const usernameInput = document.getElementById('username');
     const passwordInput = document.getElementById('password');
+    const adminKeyInput = document.getElementById('adminAuthKey');
 
     if (activeLoginRole === 'admin') {
         if (usernameInput) usernameInput.value = 'admin';
         if (passwordInput) passwordInput.value = 'admin123';
+        if (adminKeyInput) adminKeyInput.value = '';
     } else {
         if (usernameInput) usernameInput.value = 'user';
         if (passwordInput) passwordInput.value = 'user123';
+        if (adminKeyInput) adminKeyInput.value = '';
     }
 
     const errorBanner = document.getElementById('loginErrorMessage');
@@ -368,9 +382,37 @@ function togglePasswordVisibility() {
     }
 }
 
+function toggleAdminKeyVisibility() {
+    const keyInput = document.getElementById('adminAuthKey');
+    const toggleBtn = document.getElementById('adminKeyToggleBtn');
+    if (!keyInput) return;
+
+    if (keyInput.type === 'password') {
+        keyInput.type = 'text';
+        if (toggleBtn) toggleBtn.textContent = '🙈';
+    } else {
+        keyInput.type = 'password';
+        if (toggleBtn) toggleBtn.textContent = '👁️';
+    }
+}
+
+function toggleRegAdminKeyVisibility() {
+    const keyInput = document.getElementById('adminSecretKey');
+    const toggleBtn = document.getElementById('regAdminKeyToggleBtn');
+    if (!keyInput) return;
+
+    if (keyInput.type === 'password') {
+        keyInput.type = 'text';
+        if (toggleBtn) toggleBtn.textContent = '🙈';
+    } else {
+        keyInput.type = 'password';
+        if (toggleBtn) toggleBtn.textContent = '👁️';
+    }
+}
+
 function handleForgotPassword(event) {
     if (event) event.preventDefault();
-    alert(`🔑 Demo Account Credentials:\n\n• Admin: admin / admin123\n• Operator: user / user123\n\nUse the role switcher tabs above to autofill credentials.`);
+    alert(`🔑 Account Credentials Information:\n\n• Admin: Requires valid Username, Password, and Supabase Admin Authorization Key\n• Operator: Requires Username and Password only\n\nContact the system administrator if your credentials have been lost.`);
 }
 
 async function handleFormSubmit(event) {
@@ -378,11 +420,18 @@ async function handleFormSubmit(event) {
 
     const usernameInput = document.getElementById('username');
     const passwordInput = document.getElementById('password');
+    const adminKeyInput = document.getElementById('adminAuthKey');
     const errorMsgDiv = document.getElementById('loginErrorMessage');
     const submitBtn = document.getElementById('loginSubmitBtn');
+    const selectedRoleInput = document.getElementById('selectedRole');
 
     const username = usernameInput ? usernameInput.value.trim() : '';
     const password = passwordInput ? passwordInput.value.trim() : '';
+    const selectedRole = selectedRoleInput ? selectedRoleInput.value.trim().toLowerCase() : activeLoginRole;
+    const isAdmin = selectedRole === 'admin';
+    const adminKey = adminKeyInput ? adminKeyInput.value.trim() : '';
+
+    if (errorMsgDiv) errorMsgDiv.style.display = 'none';
 
     if (!username || !password) {
         if (errorMsgDiv) {
@@ -392,16 +441,38 @@ async function handleFormSubmit(event) {
         return false;
     }
 
+    if (isAdmin && !adminKey) {
+        if (errorMsgDiv) {
+            errorMsgDiv.textContent = 'Admin Authorization Key is required for administrator sign in.';
+            errorMsgDiv.style.display = 'block';
+        }
+        if (adminKeyInput) adminKeyInput.focus();
+        return false;
+    }
+
     if (submitBtn) {
         submitBtn.disabled = true;
         submitBtn.textContent = 'Authenticating...';
     }
 
     try {
+        const payload = {
+            username,
+            password,
+            role: isAdmin ? 'ADMIN' : 'OPERATOR'
+        };
+        if (isAdmin) {
+            payload.admin_key = adminKey;
+            payload.admin_secret_key = adminKey;
+        }
+
         const data = await apiFetch('/api/auth/login', {
             method: 'POST',
-            body: JSON.stringify({ username, password })
+            body: JSON.stringify(payload)
         });
+
+        // Clear the key immediately from input field upon SUCCESS
+        if (adminKeyInput) adminKeyInput.value = '';
 
         localStorage.setItem('ipss_token', data.access_token);
         localStorage.setItem('ipss_user', JSON.stringify(data.user));
@@ -410,11 +481,10 @@ async function handleFormSubmit(event) {
         return false;
     } catch (err) {
         if (errorMsgDiv) {
-            const hint = activeLoginRole === 'admin' ? 'admin / admin123' : 'user / user123';
-            errorMsgDiv.textContent = `❌ ${err.message || 'Invalid credentials'}. Try: ${hint}`;
+            errorMsgDiv.textContent = `❌ ${err.message || 'Invalid credentials'}`;
             errorMsgDiv.style.display = 'block';
         } else {
-            alert('Invalid credentials!');
+            alert(err.message || 'Invalid credentials!');
         }
         return false;
     } finally {
@@ -429,9 +499,24 @@ function setupLoginForm() {
     const loginForm = document.getElementById('loginForm');
     if (!loginForm) return;
 
-    loginForm.addEventListener('submit', function (event) {
-        handleFormSubmit(event);
-    });
+    // Check if coming from fresh registration
+    const regUsername = sessionStorage.getItem('ipss_registered_username');
+    const regRole = sessionStorage.getItem('ipss_registered_role') || 'admin';
+    if (regUsername) {
+        sessionStorage.removeItem('ipss_registered_username');
+        sessionStorage.removeItem('ipss_registered_role');
+        switchLoginRole(regRole.toLowerCase());
+        const uInput = document.getElementById('username');
+        if (uInput) uInput.value = regUsername;
+        const pInput = document.getElementById('password');
+        if (pInput) pInput.focus();
+    } else {
+        switchLoginRole(activeLoginRole || 'admin');
+    }
+
+    loginForm.onsubmit = function (event) {
+        return handleFormSubmit(event);
+    };
 }
 
 
@@ -741,7 +826,7 @@ function setupRegisterForm() {
 
         if (role === 'ADMIN' && !adminSecretKey) {
             if (errorBanner) {
-                errorBanner.textContent = 'Admin Security Key is required for administrator accounts.';
+                errorBanner.textContent = 'Admin Authorization Key is required for administrator accounts.';
                 errorBanner.style.display = 'block';
             }
             return;
@@ -762,6 +847,7 @@ function setupRegisterForm() {
             address,
             joining_date: joiningDate,
             work_location: workLocation,
+            admin_key: adminSecretKey,
             admin_secret_key: adminSecretKey
         };
 
@@ -777,9 +863,13 @@ function setupRegisterForm() {
             });
 
             if (successBanner) {
-                successBanner.textContent = '✅ Registration successful. Please sign in.';
+                successBanner.textContent = '✅ Registration successful. Redirecting to sign in...';
                 successBanner.style.display = 'block';
             }
+
+            // Save registered credentials for seamless login experience
+            sessionStorage.setItem('ipss_registered_username', username);
+            sessionStorage.setItem('ipss_registered_role', role);
 
             regForm.reset();
 
@@ -798,6 +888,8 @@ function setupRegisterForm() {
                 alert(msg);
             }
         } finally {
+            const keyEl = document.getElementById('adminSecretKey');
+            if (keyEl) keyEl.value = '';
             if (submitBtn) {
                 submitBtn.disabled = false;
                 submitBtn.textContent = role === 'ADMIN' ? 'Create Admin Account →' : 'Create Operator Account →';

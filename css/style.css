@@ -28,7 +28,7 @@
     --text-color: #070707;
     --text-muted: #555555;
     --border-color: #d1d5db;
-    
+
     /* Status Colors */
     --success-bg: #dcfce7;
     --success-text: #15803d;
@@ -88,24 +88,11 @@ header {
 .logo {
     display: flex;
     align-items: center;
-    gap: 10px;
     font-size: 22px;
     font-weight: 700;
     color: #ffffff;
     text-decoration: none;
-}
-
-.logo-icon {
-    width: 36px;
-    height: 36px;
-    background-color: var(--primary-color);
-    color: #ffffff;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 18px;
-    font-weight: bold;
+    letter-spacing: 0.5px;
 }
 
 nav {
@@ -564,9 +551,17 @@ body.dark-mode .hero-container {
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.gantt-bar.high { background-color: #dc2626; }
-.gantt-bar.medium { background-color: #d97706; }
-.gantt-bar.low { background-color: #2563eb; }
+.gantt-bar.high {
+    background-color: #dc2626;
+}
+
+.gantt-bar.medium {
+    background-color: #d97706;
+}
+
+.gantt-bar.low {
+    background-color: #2563eb;
+}
 
 /* ==========================================
    DASHBOARD RECENT ACTIVITY & PROGRESS
@@ -684,12 +679,35 @@ body.dark-mode .progress-track {
     font-size: 22px;
 }
 
-.icon-blue { background-color: #dbeafe; color: #2563eb; }
-.icon-amber { background-color: #fef3c7; color: #d97706; }
-.icon-green { background-color: #dcfce7; color: #16a34a; }
-.icon-purple { background-color: #f3e8ff; color: #9333ea; }
-.icon-cyan { background-color: #cff4fc; color: #0891b2; }
-.icon-rose { background-color: #ffe4e6; color: #e11d48; }
+.icon-blue {
+    background-color: #dbeafe;
+    color: #2563eb;
+}
+
+.icon-amber {
+    background-color: #fef3c7;
+    color: #d97706;
+}
+
+.icon-green {
+    background-color: #dcfce7;
+    color: #16a34a;
+}
+
+.icon-purple {
+    background-color: #f3e8ff;
+    color: #9333ea;
+}
+
+.icon-cyan {
+    background-color: #cff4fc;
+    color: #0891b2;
+}
+
+.icon-rose {
+    background-color: #ffe4e6;
+    color: #e11d48;
+}
 
 .card {
     background-color: var(--card-bg);
@@ -841,10 +859,25 @@ body.dark-mode .progress-track {
     text-transform: capitalize;
 }
 
-.badge-success { background-color: var(--success-bg); color: var(--success-text); }
-.badge-warning { background-color: var(--warning-bg); color: var(--warning-text); }
-.badge-danger { background-color: var(--danger-bg); color: var(--danger-text); }
-.badge-info { background-color: var(--info-bg); color: var(--info-text); }
+.badge-success {
+    background-color: var(--success-bg);
+    color: var(--success-text);
+}
+
+.badge-warning {
+    background-color: var(--warning-bg);
+    color: var(--warning-text);
+}
+
+.badge-danger {
+    background-color: var(--danger-bg);
+    color: var(--danger-text);
+}
+
+.badge-info {
+    background-color: var(--info-bg);
+    color: var(--info-text);
+}
 
 .action-buttons {
     display: flex;
@@ -929,8 +962,15 @@ body.dark-mode .progress-track {
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(4px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* Drag & Drop Zone */
@@ -948,7 +988,8 @@ body.dark-mode .drop-zone {
     background-color: rgba(255, 255, 255, 0.02);
 }
 
-.drop-zone:hover, .drop-zone.drop-zone--over {
+.drop-zone:hover,
+.drop-zone.drop-zone--over {
     border-color: var(--primary-color);
     background-color: rgba(37, 99, 235, 0.08);
 }
@@ -1115,9 +1156,17 @@ body.dark-mode .drop-zone {
     border-radius: 50%;
 }
 
-.chip-status-dot.available { background-color: #22c55e; }
-.chip-status-dot.working { background-color: #eab308; }
-.chip-status-dot.maintenance { background-color: #ef4444; }
+.chip-status-dot.available {
+    background-color: #22c55e;
+}
+
+.chip-status-dot.working {
+    background-color: #eab308;
+}
+
+.chip-status-dot.maintenance {
+    background-color: #ef4444;
+}
 
 /* Custom Risk Badges */
 .badge-on-track {
@@ -1134,8 +1183,14 @@ body.dark-mode .drop-zone {
 }
 
 @keyframes pulseAlert {
-    from { opacity: 0.8; }
-    to { opacity: 1; transform: scale(1.02); }
+    from {
+        opacity: 0.8;
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1.02);
+    }
 }
 
 body.dark-mode .badge-on-track {
@@ -1261,6 +1316,7 @@ body.dark-mode .view-only-tag {
         opacity: 0;
         transform: translateX(100%) scale(0.9);
     }
+
     to {
         opacity: 1;
         transform: translateX(0) scale(1);

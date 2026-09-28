@@ -1,4 +1,5 @@
 # ⚙️ IPSS — Intelligent Product Scheduling System
+ 
 
 > **Full-stack manufacturing floor scheduling, real-time machine monitoring, and production analytics platform built with vanilla HTML5/CSS3/JavaScript frontend, Python (FastAPI) backend, and Supabase (PostgreSQL) database.**
 
@@ -69,7 +70,7 @@ All application data is securely persisted in Supabase PostgreSQL. The relationa
 5. `schedules` — Optimized timeline allocations with `start_time`, `end_time`, `priority`, and status.
 6. `activities` — Real-time event and audit log entries.
 
----
+
 
 ## 🔑 Demo Credentials
 
@@ -78,7 +79,7 @@ All application data is securely persisted in Supabase PostgreSQL. The relationa
 | **Administrator** | `admin` or `admin@ipss.com` | `admin123` | Full plant management, CRUD & scheduling |
 | **Floor Operator** | `user` or `user@ipss.com` | `user123` | Dashboard, Products (View Only), Reports, Profile |
 
----
+---===
 
 ## 🚀 Setup & Run Instructions
 

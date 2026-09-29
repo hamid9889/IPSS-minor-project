@@ -1,0 +1,147 @@
+/* ============================================================
+   IPSS — Production Schedule Stylesheet (schedule.css)
+   Clean, humanized styles for scheduling engine & Gantt chart
+   ============================================================ */
+
+/* Header user profile link */
+.header-controls .user-profile-link {
+    text-decoration: none;
+}
+
+/* Schedule action card header & controls */
+.schedule-action-header {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.schedule-priority-hint {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: 4px;
+}
+
+.btn-generate-schedule,
+#generateScheduleBtn {
+    padding: 12px 24px;
+    font-size: 15px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.btn-generate-schedule:disabled,
+#generateScheduleBtn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.schedule-loading-status,
+#scheduleLoadingStatus {
+    display: none;
+    margin-top: 15px;
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--primary-color);
+}
+
+.gantt-card-title {
+    margin-bottom: 15px;
+}
+
+.schedule-table-card {
+    margin-top: 25px;
+}
+
+/* ============================================================
+   GANTT TIMELINE CHART (SCHEDULE PAGE)
+   ============================================================ */
+.gantt-container {
+    margin-top: 25px;
+    background-color: var(--card-bg);
+    border-radius: 10px;
+    padding: 20px;
+    border: 1px solid var(--border-color);
+    overflow-x: auto;
+}
+
+.gantt-header {
+    display: grid;
+    grid-template-columns: 120px repeat(6, 1fr);
+    min-width: 600px;
+    border-bottom: 2px solid var(--border-color);
+    padding-bottom: 10px;
+    font-weight: 600;
+    font-size: 13px;
+    text-align: center;
+    color: var(--text-muted);
+}
+
+.gantt-row {
+    display: grid;
+    grid-template-columns: 120px repeat(6, 1fr);
+    min-width: 600px;
+    align-items: center;
+    border-bottom: 1px solid var(--border-color);
+    padding: 12px 0;
+    font-size: 13px;
+}
+
+.gantt-machine-label {
+    font-weight: 700;
+    padding-left: 8px;
+    color: var(--text-color);
+}
+
+.gantt-slot {
+    padding: 4px;
+}
+
+.gantt-bar {
+    background-color: var(--primary-color);
+    color: #ffffff;
+    padding: 6px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.gantt-bar.high {
+    background-color: #dc2626;
+}
+
+.gantt-bar.medium {
+    background-color: #d97706;
+}
+
+.gantt-bar.low {
+    background-color: #2563eb;
+}
+
+.empty-placeholder {
+    padding: 30px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+/* ============================================================
+   RESPONSIVE DESIGN
+   ============================================================ */
+@media (max-width: 768px) {
+    .schedule-action-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .btn-generate-schedule,
+    #generateScheduleBtn {
+        width: 100%;
+        text-align: center;
+    }
+}

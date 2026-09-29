@@ -6,6 +6,7 @@
     <title>IPSS - Production Reports</title>
     <link rel="icon" type="image/png" href="images/favicon.png">
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/reports.css">
 </head>
 <body>
 
@@ -45,7 +46,7 @@
 
                 <div class="header-controls">
                     <button id="themeToggleBtn" onclick="toggleDarkMode()" class="btn-theme-toggle">🌙 Dark Mode</button>
-                    <a href="profile.html" class="user-profile" style="text-decoration: none;">
+                    <a href="profile.html" class="user-profile user-profile-link">
                         <div class="user-avatar">AU</div>
                         <div class="user-info">
                             <div class="user-name">Admin User</div>
@@ -117,21 +118,21 @@
                 </div>
 
                 <!-- Visual Representations Grid -->
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+                <div class="reports-visual-grid">
                     <!-- Order Status Visual Representation (CSS Bars) -->
                     <div class="card">
                         <div class="card-header">
                             <h2 class="card-title">Order Status Distribution</h2>
                         </div>
 
-                        <div style="display: flex; flex-direction: column; gap: 15px;">
+                        <div class="order-status-list">
                             <div>
                                 <div class="progress-label">
                                     <span>Completed Orders</span>
                                     <span id="barCompletedTxt">0%</span>
                                 </div>
                                 <div class="progress-track">
-                                    <div id="barCompleted" class="progress-fill" style="width: 0%; background-color: #16a34a;"></div>
+                                    <div id="barCompleted" class="progress-fill bar-completed"></div>
                                 </div>
                             </div>
 
@@ -141,7 +142,7 @@
                                     <span id="barPendingTxt">0%</span>
                                 </div>
                                 <div class="progress-track">
-                                    <div id="barPending" class="progress-fill" style="width: 0%; background-color: #d97706;"></div>
+                                    <div id="barPending" class="progress-fill bar-pending"></div>
                                 </div>
                             </div>
 
@@ -151,7 +152,7 @@
                                     <span id="barDelayedTxt">0%</span>
                                 </div>
                                 <div class="progress-track">
-                                    <div id="barDelayed" class="progress-fill" style="width: 0%; background-color: #dc2626;"></div>
+                                    <div id="barDelayed" class="progress-fill bar-delayed"></div>
                                 </div>
                             </div>
                         </div>

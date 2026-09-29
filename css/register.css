@@ -1,0 +1,521 @@
+/* ============================================================
+   IPSS — Registration Page Stylesheet (register.css)
+   Clean, humanized styles for user & admin registration
+   ============================================================ */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body.login-body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    min-height: 100vh;
+    background-color: #f2f3f7;
+}
+
+/* ---- Split Layout Container ---- */
+.login-split {
+    display: flex;
+    min-height: 100vh;
+}
+
+/* ============================================================
+   LEFT PANEL — Brand Sidebar (matches system theme)
+   ============================================================ */
+.login-brand-panel {
+    width: 340px;
+    flex-shrink: 0;
+    background-color: #2d2621;
+    color: #d1c4b9;
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    position: relative;
+}
+
+.brand-logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 22px 24px;
+    background-color: #bf9d85;
+    border-bottom: 1px solid #1e293b;
+}
+
+.brand-name {
+    font-size: 20px;
+    font-weight: 700;
+    color: #ffffff;
+    line-height: 1;
+}
+
+.brand-sub {
+    font-size: 11px;
+    color: #f1f5f9;
+    font-weight: 500;
+    margin-top: 2px;
+}
+
+.brand-tagline {
+    padding: 36px 28px 24px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.brand-tagline h2 {
+    font-size: 22px;
+    font-weight: 700;
+    color: #ffffff;
+    line-height: 1.35;
+    margin-bottom: 10px;
+}
+
+.brand-tagline p {
+    font-size: 13.5px;
+    color: #a8998d;
+    line-height: 1.55;
+}
+
+.brand-features {
+    padding: 24px 12px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.brand-feature-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 11px 16px;
+    border-radius: 8px;
+    color: #d1c4b9;
+    font-size: 14px;
+    font-weight: 500;
+    transition: background 0.18s;
+}
+
+.brand-feature-item:hover {
+    background-color: #3d342d;
+    color: #ffffff;
+}
+
+.feat-icon {
+    font-size: 18px;
+    width: 22px;
+    text-align: center;
+}
+
+.brand-back-link {
+    display: block;
+    padding: 18px 28px;
+    border-top: 1px solid #3d342d;
+    color: #e07e0d;
+    text-decoration: none;
+    font-size: 13.5px;
+    font-weight: 600;
+    transition: color 0.18s;
+}
+
+.brand-back-link:hover {
+    color: #f59e0b;
+}
+
+/* ============================================================
+   RIGHT PANEL — Registration Form Panel
+   ============================================================ */
+.login-form-panel {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 24px;
+    background-color: #f2f3f7;
+}
+
+.login-form-box {
+    width: 100%;
+    background-color: #ffffff;
+    border-radius: 14px;
+    border: 1px solid #d1d5db;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+}
+
+.register-form-box {
+    max-width: 640px;
+}
+
+/* ---- Role Switcher Tab Bar ---- */
+.role-switcher-bar {
+    display: flex;
+    background-color: #bf9d85;
+    padding: 8px 12px;
+    gap: 6px;
+    border-bottom: 1px solid #a88c76;
+}
+
+.role-tab {
+    flex: 1;
+    padding: 9px 14px;
+    border: none;
+    border-radius: 7px;
+    background: transparent;
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.2s, color 0.2s;
+}
+
+.role-tab:hover:not(.active) {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.role-tab.active {
+    background-color: #2563eb;
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35);
+}
+
+.role-tab.active.user-active {
+    background-color: #059669;
+    box-shadow: 0 2px 8px rgba(5, 150, 105, 0.35);
+}
+
+/* ---- Form Header ---- */
+.form-box-header {
+    padding: 28px 32px 4px;
+}
+
+.form-box-header h1 {
+    font-size: 22px;
+    font-weight: 700;
+    color: #070707;
+    margin-bottom: 4px;
+}
+
+.form-box-header p {
+    font-size: 13px;
+    color: #555555;
+}
+
+/* ---- Status Banners ---- */
+.login-error {
+    margin: 14px 32px 0;
+    background-color: #fee2e2;
+    color: #b91c1c;
+    border: 1px solid #f87171;
+    border-radius: 7px;
+    padding: 10px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+}
+
+.register-success {
+    margin: 14px 32px 0;
+    background-color: #dcfce7;
+    color: #15803d;
+    border: 1px solid #86efac;
+    border-radius: 7px;
+    padding: 10px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+}
+
+#registerErrorMessage,
+#registerSuccessMessage {
+    display: none;
+}
+
+/* ---- Form Elements ---- */
+#registerForm {
+    padding: 20px 32px 24px;
+}
+
+.form-row-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
+
+.reg-section-title {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #374151;
+    margin: 16px 0 12px;
+    padding-bottom: 6px;
+    border-bottom: 1px dashed #d1d5db;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.field-group {
+    margin-bottom: 16px;
+}
+
+.field-group label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 6px;
+}
+
+.required-star {
+    color: #ef4444;
+}
+
+.field-input {
+    width: 100%;
+    padding: 11px 14px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 14.5px;
+    font-family: inherit;
+    color: #111827;
+    background: #f9fafb;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.field-input:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+    background: #ffffff;
+}
+
+.field-input.user-mode:focus {
+    border-color: #059669;
+    box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.15);
+}
+
+.password-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.password-wrap .field-input {
+    padding-right: 44px;
+}
+
+.pwd-toggle {
+    position: absolute;
+    right: 10px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    color: #9ca3af;
+    padding: 4px;
+    transition: color 0.15s;
+}
+
+.pwd-toggle:hover {
+    color: #374151;
+}
+
+/* ---- Admin Authorization Key Box ---- */
+#adminKeyGroup,
+.admin-key-group {
+    margin-top: 10px;
+    padding: 12px 14px;
+    background: rgba(37, 99, 235, 0.06);
+    border: 1px solid rgba(37, 99, 235, 0.25);
+    border-radius: 8px;
+}
+
+.admin-key-label {
+    color: #1e40af;
+    font-weight: 700;
+}
+
+.admin-key-hint {
+    font-size: 11.5px;
+    color: #64748b;
+    margin-top: 4px;
+    display: block;
+}
+
+/* ---- Submit Button ---- */
+.btn-sign-in {
+    width: 100%;
+    padding: 13px;
+    border: none;
+    border-radius: 8px;
+    background-color: #2563eb;
+    color: #ffffff;
+    font-size: 15px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+}
+
+.btn-sign-in:hover {
+    background-color: #1d4ed8;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
+}
+
+.btn-sign-in:active {
+    transform: translateY(0);
+}
+
+.btn-sign-in.user-mode {
+    background-color: #059669;
+    box-shadow: 0 2px 8px rgba(5, 150, 105, 0.3);
+}
+
+.btn-sign-in.user-mode:hover {
+    background-color: #047857;
+    box-shadow: 0 4px 14px rgba(5, 150, 105, 0.4);
+}
+
+#registerSubmitBtn,
+.btn-register-submit {
+    margin-top: 18px;
+}
+
+/* ---- Auth Switch Link ---- */
+.auth-switch-box {
+    margin-top: 18px;
+    text-align: center;
+    font-size: 13.5px;
+    color: #4b5563;
+    padding-top: 14px;
+    border-top: 1px solid #e5e7eb;
+}
+
+.auth-switch-link {
+    color: #2563eb;
+    font-weight: 600;
+    text-decoration: none;
+    margin-left: 4px;
+    transition: color 0.15s;
+}
+
+.auth-switch-link:hover {
+    color: #1d4ed8;
+    text-decoration: underline;
+}
+
+.auth-switch-link.user-mode {
+    color: #059669;
+}
+
+.auth-switch-link.user-mode:hover {
+    color: #047857;
+}
+
+/* ============================================================
+   DARK MODE
+   ============================================================ */
+body.dark-mode.login-body {
+    background-color: #0f172a;
+}
+
+body.dark-mode .login-form-panel {
+    background-color: #0f172a;
+}
+
+body.dark-mode .login-form-box {
+    background-color: #1e293b;
+    border-color: #334155;
+}
+
+body.dark-mode .form-box-header h1 {
+    color: #f8fafc;
+}
+
+body.dark-mode .form-box-header p {
+    color: #94a3b8;
+}
+
+body.dark-mode .field-group label {
+    color: #cbd5e1;
+}
+
+body.dark-mode .field-input {
+    background-color: #0f172a;
+    border-color: #334155;
+    color: #f8fafc;
+}
+
+body.dark-mode .field-input:focus {
+    background-color: #0f172a;
+}
+
+body.dark-mode .reg-section-title {
+    color: #cbd5e1;
+    border-bottom-color: #334155;
+}
+
+body.dark-mode .register-success {
+    background-color: rgba(22, 163, 74, 0.2);
+    color: #86efac;
+    border-color: rgba(134, 239, 172, 0.4);
+}
+
+body.dark-mode #adminKeyGroup,
+body.dark-mode .admin-key-group {
+    background: rgba(37, 99, 235, 0.12);
+    border-color: rgba(37, 99, 235, 0.35);
+}
+
+body.dark-mode .admin-key-label {
+    color: #93c5fd;
+}
+
+body.dark-mode .admin-key-hint {
+    color: #94a3b8;
+}
+
+body.dark-mode .auth-switch-box {
+    color: #94a3b8;
+    border-top-color: #334155;
+}
+
+/* ============================================================
+   RESPONSIVE DESIGN
+   ============================================================ */
+@media (max-width: 768px) {
+    .login-split {
+        flex-direction: column;
+    }
+
+    .login-brand-panel {
+        width: 100%;
+        flex-shrink: unset;
+    }
+
+    .brand-tagline,
+    .brand-features {
+        display: none;
+    }
+
+    .login-form-panel {
+        padding: 28px 16px;
+    }
+
+    .form-box-header,
+    #registerForm {
+        padding-left: 20px;
+        padding-right: 20px;
+    }
+}
+
+@media (max-width: 600px) {
+    .form-row-2 {
+        grid-template-columns: 1fr;
+        gap: 0;
+    }
+}

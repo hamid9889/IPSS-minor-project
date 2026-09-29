@@ -7,7 +7,7 @@
     <title>Register - IPSS</title>
     <link rel="icon" type="image/png" href="images/favicon.png">
     <link rel="stylesheet" href="css/style.css">
-    <link rel="stylesheet" href="css/login.css">
+    <link rel="stylesheet" href="css/register.css">
 </head>
 
 <body class="login-body">
@@ -74,8 +74,8 @@
                 </div>
 
                 <!-- Status Banners -->
-                <div id="registerErrorMessage" class="login-error" style="display:none;"></div>
-                <div id="registerSuccessMessage" class="register-success" style="display:none;"></div>
+                <div id="registerErrorMessage" class="login-error"></div>
+                <div id="registerSuccessMessage" class="register-success"></div>
 
                 <!-- Registration Form -->
                 <form id="registerForm">
@@ -88,34 +88,33 @@
 
                     <div class="form-row-2">
                         <div class="field-group">
-                            <label for="regFullName">Full Name <span style="color: #ef4444;">*</span></label>
+                            <label for="regFullName">Full Name <span class="required-star">*</span></label>
                             <input type="text" id="regFullName" class="field-input" placeholder=" e.g Hamid Ansari"
                                 required autocomplete="name">
                         </div>
 
                         <div class="field-group">
-                            <label for="regUsername">Username <span style="color: #ef4444;">*</span></label>
+                            <label for="regUsername">Username <span class="required-star">*</span></label>
                             <input type="text" id="regUsername" class="field-input" placeholder="e.g. Hamid" required
                                 autocomplete="username">
                         </div>
                     </div>
 
                     <div class="field-group">
-                        <label for="regEmail">Email Address <span style="color: #ef4444;">*</span></label>
+                        <label for="regEmail">Email Address <span class="required-star">*</span></label>
                         <input type="email" id="regEmail" class="field-input" placeholder="[EMAIL_ADDRESS]" required
                             autocomplete="email">
                     </div>
 
                     <div class="form-row-2">
                         <div class="field-group">
-                            <label for="regPassword">Password <span style="color: #ef4444;">*</span></label>
+                            <label for="regPassword">Password <span class="required-star">*</span></label>
                             <input type="password" id="regPassword" class="field-input" placeholder="••••••••" required
                                 autocomplete="new-password">
                         </div>
 
                         <div class="field-group">
-                            <label for="regConfirmPassword">Confirm Password <span
-                                    style="color: #ef4444;">*</span></label>
+                            <label for="regConfirmPassword">Confirm Password <span class="required-star">*</span></label>
                             <input type="password" id="regConfirmPassword" class="field-input" placeholder="••••••••"
                                 required autocomplete="new-password">
                         </div>
@@ -185,10 +184,9 @@
                     </div>
 
                     <!-- Section 3: Admin Authorization Key (Conditional) -->
-                    <div id="adminKeyGroup" class="field-group"
-                        style="margin-top: 10px; padding: 12px 14px; background: rgba(37,99,235,0.06); border: 1px solid rgba(37,99,235,0.25); border-radius: 8px;">
-                        <label for="adminSecretKey" style="color: #1e40af; font-weight: 700;">
-                            🛡️ Admin Authorization Key <span style="color: #ef4444;">*</span>
+                    <div id="adminKeyGroup" class="field-group admin-key-group">
+                        <label for="adminSecretKey" class="admin-key-label">
+                            🛡️ Admin Authorization Key <span class="required-star">*</span>
                         </label>
                         <div class="password-wrap">
                             <input type="password" id="adminSecretKey" class="field-input"
@@ -196,12 +194,12 @@
                             <button type="button" class="pwd-toggle" id="regAdminKeyToggleBtn"
                                 onclick="toggleRegAdminKeyVisibility()">👁️</button>
                         </div>
-                        <span style="font-size: 11.5px; color: #64748b; margin-top: 4px; display: block;">
+                        <span class="admin-key-hint">
                             Required by backend security policy to create an Administrator account.
                         </span>
                     </div>
 
-                    <button type="submit" id="registerSubmitBtn" class="btn-sign-in" style="margin-top: 18px;">
+                    <button type="submit" id="registerSubmitBtn" class="btn-sign-in btn-register-submit">
                         Create Admin Account &rarr;
                     </button>
 

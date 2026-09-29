@@ -1,0 +1,65 @@
+/* ============================================================
+   IPSS — Production Reports Stylesheet (reports.css)
+   Clean, humanized styles for reports and production analytics
+   ============================================================ */
+
+/* Header user profile link */
+.header-controls .user-profile-link {
+    text-decoration: none;
+}
+
+/* Visual analytics grid container */
+.reports-visual-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+/* Order status distribution bars container */
+.order-status-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+/* Order status progress bar fill colors */
+.bar-completed,
+#barCompleted {
+    width: 0%;
+    background-color: #16a34a;
+}
+
+.bar-pending,
+#barPending {
+    width: 0%;
+    background-color: #d97706;
+}
+
+.bar-delayed,
+#barDelayed {
+    width: 0%;
+    background-color: #dc2626;
+}
+
+/* Dynamic machine usage breakdown items */
+#rptMachineUsageBars {
+    display: flex;
+    flex-direction: column;
+}
+
+#rptMachineUsageBars .progress-track {
+    margin-top: 4px;
+}
+
+/* Production summary KPI indicators */
+.custom-table td strong {
+    color: var(--text-color);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .reports-visual-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+}

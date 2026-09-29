@@ -6,6 +6,7 @@
     <title>IPSS - Production Schedule</title>
     <link rel="icon" type="image/png" href="images/favicon.png">
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/schedule.css">
 </head>
 <body>
 
@@ -45,7 +46,7 @@
 
                 <div class="header-controls">
                     <button id="themeToggleBtn" onclick="toggleDarkMode()" class="btn-theme-toggle">🌙 Dark Mode</button>
-                    <a href="profile.html" class="user-profile" style="text-decoration: none;">
+                    <a href="profile.html" class="user-profile user-profile-link">
                         <div class="user-avatar">AU</div>
                         <div class="user-info">
                             <div class="user-name">Admin User</div>
@@ -59,23 +60,23 @@
             <div class="content-wrapper">
                 <!-- Action Card with Loading Experience -->
                 <div class="card">
-                    <div class="card-header" style="border-bottom: none; margin-bottom: 0; padding-bottom: 0;">
+                    <div class="card-header schedule-action-header">
                         <div>
                             <h2 class="card-title">Automated Production Scheduling</h2>
-                            <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">
+                            <p class="schedule-priority-hint">
                                 Priority order: High &rarr; Medium &rarr; Low. Earlier deadline orders get assigned first to available machines.
                             </p>
                         </div>
-                        <button id="generateScheduleBtn" class="btn btn-success" style="padding: 12px 24px; font-size: 15px;">⚡ Generate Best Schedule</button>
+                        <button id="generateScheduleBtn" class="btn btn-success btn-generate-schedule">⚡ Generate Best Schedule</button>
                     </div>
 
                     <!-- Step-by-Step Loading Status -->
-                    <div id="scheduleLoadingStatus" style="display: none; margin-top: 15px; font-weight: 600; font-size: 14px; color: var(--primary-color);"></div>
+                    <div id="scheduleLoadingStatus" class="schedule-loading-status"></div>
                 </div>
 
                 <!-- Gantt-Style Timeline Chart Card -->
                 <div class="gantt-container">
-                    <h2 class="card-title" style="margin-bottom: 15px;">Visual Schedule Gantt Timeline</h2>
+                    <h2 class="card-title gantt-card-title">Visual Schedule Gantt Timeline</h2>
                     
                     <div class="gantt-header">
                         <div>Machine</div>
@@ -93,7 +94,7 @@
                 </div>
 
                 <!-- Schedule Table Card -->
-                <div class="card" style="margin-top: 25px;">
+                <div class="card schedule-table-card">
                     <div class="card-header">
                         <h2 class="card-title">Generated Production Schedule Details</h2>
                     </div>
